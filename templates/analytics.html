@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Enterprise Incident Postmortem Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .navbar-nav {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .filters {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .filter-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 0.5rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .chart-title {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+            
+            .filter-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            Enterprise Postmortem Generator
+        </div>
+        <div class="navbar-nav">
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/incidents" class="nav-link">Incidents</a>
+            <a href="/analytics" class="nav-link">Analytics</a>
+            <a href="/incidents/new" class="nav-link">New Incident</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Analytics Dashboard</h1>
+        </div>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label class="filter-label">Start Date</label>
+                <input type="date" id="startDate" class="filter-input">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">End Date</label>
+                <input type="date" id="endDate" class="filter-input">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Team</label>
+                <select id="teamFilter" class="filter-input">
+                    <option value="">All Teams</option>
+                </select>
+            </div>
+            <button class="btn" onclick="loadAnalytics()">Update</button>
+        </div>
+        
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="loading">Loading metrics...</div>
+        </div>
+        
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3 class="chart-title">Incident Trends</h3>
+                <div class="chart-container">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <h3 class="chart-title">Severity Breakdown</h3>
+                <div class="chart-container">
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <h3 class="chart-title">Status Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <h3 class="chart-title">SLA Compliance</h3>
+                <div class="chart-container">
+                    <canvas id="slaChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let trendsChart, severityChart, statusChart, slaChart;
+        
+        // Initialize date filters (last 30 days)
+        document.addEventListener('DOMContentLoaded', function() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 30);
+            
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            
+            loadAnalytics();
+        });
+        
+        async function loadAnalytics() {
+            try {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const teamId = document.getElementById('teamFilter').value;
+                
+                // Load incident metrics
+                const metricsResponse = await fetch(
+                    `/api/analytics/metrics?start_date=${startDate}&end_date=${endDate}&team_id=${teamId}`
+                );
+                const metrics = await metricsResponse.json();
+                
+                // Load SLA report
+                const slaResponse = await fetch(
+                    `/api/analytics/sla?start_date=${startDate}&end_date=${endDate}`
+                );
+                const slaData = await slaResponse.json();
+                
+                // Update displays
+                updateMetrics(metrics);
+                updateCharts(metrics, slaData);
+                
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                document.getElementById('metricsGrid').innerHTML = 
+                    '<div class="loading">Error loading metrics</div>';
+            }
+        }
+        
+        function updateMetrics(metrics) {
+            const metricsGrid = document.getElementById('metricsGrid');
+            
+            metricsGrid.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.summary?.total_incidents || 0}</div>
+                    <div class="metric-label">Total Incidents</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.summary?.avg_resolution_time_minutes || 0}m</div>
+                    <div class="metric-label">Avg Resolution Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.summary?.sla_compliance_rate || 0}%</div>
+                    <div class="metric-label">SLA Compliance</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.status_breakdown?.find(s => s.status === 'published')?.count || 0}</div>
+                    <div class="metric-label">Published Postmortems</div>
+                </div>
+            `;
+        }
+        
+        function updateCharts(metrics, slaData) {
+            // Trends Chart
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            if (trendsChart) trendsChart.destroy();
+            
+            trendsChart = new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: metrics.daily_trends?.map(t => new Date(t.date).toLocaleDateString()) || [],
+                    datasets: [{
+                        label: 'Daily Incidents',
+                        data: metrics.daily_trends?.map(t => t.count) || [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Severity Chart
+            const severityCtx = document.getElementById('severityChart').getContext('2d');
+            if (severityChart) severityChart.destroy();
+            
+            severityChart = new Chart(severityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: metrics.severity_breakdown?.map(s => s.severity) || [],
+                    datasets: [{
+                        data: metrics.severity_breakdown?.map(s => s.count) || [],
+                        backgroundColor: ['#e74c3c', '#f39c12', '#3498db', '#27ae60']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Status Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            if (statusChart) statusChart.destroy();
+            
+            statusChart = new Chart(statusCtx, {
+                type: 'bar',
+                data: {
+                    labels: metrics.status_breakdown?.map(s => s.status) || [],
+                    datasets: [{
+                        label: 'Incidents by Status',
+                        data: metrics.status_breakdown?.map(s => s.count) || [],
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // SLA Chart
+            const slaCtx = document.getElementById('slaChart').getContext('2d');
+            if (slaChart) slaChart.destroy();
+            
+            const slaLabels = Object.keys(slaData.sla_metrics || {});
+            const complianceRates = slaLabels.map(label => slaData.sla_metrics[label].compliance_rate);
+            
+            slaChart = new Chart(slaCtx, {
+                type: 'bar',
+                data: {
+                    labels: slaLabels,
+                    datasets: [{
+                        label: 'SLA Compliance Rate (%)',
+                        data: complianceRates,
+                        backgroundColor: complianceRates.map(rate => rate >= 95 ? '#27ae60' : rate >= 80 ? '#f39c12' : '#e74c3c')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

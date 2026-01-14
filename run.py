@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Incident Postmortem Generator - Main Entry Point
+Enterprise Incident Postmortem Generator - Main Entry Point
 
-This script starts the web application for generating incident postmortems.
+This script starts the enterprise-grade web application for generating incident postmortems.
+Features include authentication, analytics, SLA tracking, notifications, and more.
 """
 
 import os
@@ -14,7 +15,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from app.main import app
+from app.enterprise_main import app
 from config import Config
 
 
@@ -36,6 +37,7 @@ def main():
     """Main entry point for the application"""
     print(f"Starting {Config.APP_NAME} v{Config.VERSION}")
     print(f"Debug mode: {Config.DEBUG}")
+    print(f"Database: {Config.DATABASE_URL}")
     print(f"Server will be available at: http://{Config.HOST}:{Config.PORT}")
     
     # Create necessary directories
@@ -47,7 +49,8 @@ def main():
         host=Config.HOST,
         port=Config.PORT,
         reload=Config.DEBUG,
-        log_level="info" if not Config.DEBUG else "debug"
+        log_level="info" if not Config.DEBUG else "debug",
+        access_log=True
     )
 
 

@@ -1,425 +1,509 @@
-# Incident Postmortem Generator
+# Enterprise Incident Postmortem Generator
 
-A production-ready web application for generating comprehensive incident postmortems from timeline data. Built for SRE teams to create consistent, high-quality postmortems quickly and efficiently.
+A production-ready, enterprise-grade web application for generating comprehensive incident postmortems from timeline data. Built for SRE teams with advanced features including authentication, analytics, SLA tracking, notifications, and role-based access control.
 
-## Features
+## **Enterprise Features**
 
-- **Web-based Interface**: Clean, responsive UI for inputting incident data
+### **Core Capabilities**
+- **Web-based Interface**: Clean, responsive UI with modern design
 - **Multiple Input Formats**: Accept both JSON and YAML incident data
-- **Google SRE-style Postmortems**: Follow industry best practices for incident analysis
+- **Google SRE-style Postmortems**: Follow industry best practices
 - **Contributing Factors Analysis**: Categorize technical, process, people, and external factors
 - **Action Items Management**: Generate categorized action items with priorities
 - **What Went Well/Wrong Analysis**: Structured analysis of incident response
-- **Jira Integration**: Automatically create Jira tickets for action items
-- **Multiple Output Formats**: Generate Markdown and PDF outputs
-- **Production Ready**: Docker support, environment configuration, and proper error handling
 
-## Quick Start
+### **Enterprise Features**
+- **Authentication & Authorization**: JWT-based auth with role-based access control
+- **User Management**: Admin, Editor, and Viewer roles with granular permissions
+- **Analytics Dashboard**: Real-time metrics, trends, and SLA compliance reporting
+- **SLA Tracking**: Automated SLA monitoring and breach alerts
+- **Notification System**: Email, Slack, and webhook notifications
+- **Audit Logging**: Complete audit trail for compliance and security
+- **Advanced Search**: Full-text search with filtering capabilities
+- **Database Storage**: Persistent storage with history and versioning
+- **API Rate Limiting**: Protect against abuse and ensure performance
+- **Production Ready**: Docker support, environment configuration, monitoring
 
-### Prerequisites
+### **Integrations**
+- **Jira Integration**: Automatically create tickets for action items
+- **Slack Notifications**: Real-time alerts and updates
+- **Email Notifications**: Automated email reports and alerts
+- **Webhook Support**: Custom integrations via webhooks
+- **Prometheus Metrics**: Export metrics for monitoring
 
+## **Quick Start**
+
+### **Prerequisites**
 - Python 3.8 or higher
-- pip package manager
+- PostgreSQL (recommended) or SQLite for development
+- Redis (for background tasks and caching)
 
-### Installation
+### **Installation**
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd incident-postmortem-generator
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. **Configure environment:**
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. **Initialize database:**
+```bash
+# For PostgreSQL
+export DATABASE_URL="postgresql://user:password@localhost/incident_db"
+
+# For SQLite (development)
+export DATABASE_URL="sqlite:///./incident_postmortem.db"
+```
+
+5. **Run the application:**
 ```bash
 python run.py
 ```
 
-4. Open your browser and navigate to:
+6. **Access the application:**
 ```
 http://localhost:8000
 ```
 
-## Usage
+## **Configuration**
 
-### 1. Prepare Incident Data
-
-Create your incident data in JSON or YAML format. Here's a sample structure:
-
-#### JSON Format
-```json
-{
-  "title": "Database Connection Pool Exhaustion",
-  "severity": "high",
-  "start_time": "2024-01-15T10:30:00Z",
-  "end_time": "2024-01-15T11:45:00Z",
-  "description": "Application experienced database connection pool exhaustion",
-  "timeline": [
-    {
-      "timestamp": "2024-01-15T10:30:00Z",
-      "event": "Alert triggered: High database connection usage",
-      "severity": "medium",
-      "source": "Prometheus"
-    }
-  ],
-  "impact": [
-    {
-      "type": "availability",
-      "description": "Service availability degraded to 70%",
-      "affected_users": 5000,
-      "affected_services": ["user-service", "order-service"],
-      "duration_minutes": 75
-    }
-  ],
-  "contributing_factors": [
-    {
-      "factor": "Connection leak in recent deployment",
-      "category": "technical",
-      "description": "Recent code changes introduced a database connection leak"
-    }
-  ],
-  "action_items": [
-    {
-      "title": "Fix database connection leak",
-      "description": "Identify and fix the root cause of the connection leak",
-      "category": "immediate",
-      "priority": "high",
-      "assignee": "backend-team"
-    }
-  ],
-  "what_went_well": [
-    "Quick response from on-call engineer"
-  ],
-  "what_went_wrong": [
-    "Connection leak was not caught in pre-deployment testing"
-  ]
-}
-```
-
-#### YAML Format
-```yaml
-title: Database Connection Pool Exhaustion
-severity: high
-start_time: 2024-01-15T10:30:00Z
-end_time: 2024-01-15T11:45:00Z
-description: Application experienced database connection pool exhaustion
-
-timeline:
-  - timestamp: 2024-01-15T10:30:00Z
-    event: Alert triggered: High database connection usage
-    severity: medium
-    source: Prometheus
-
-impact:
-  - type: availability
-    description: Service availability degraded to 70%
-    affected_users: 5000
-    affected_services: [user-service, order-service]
-    duration_minutes: 75
-
-contributing_factors:
-  - factor: Connection leak in recent deployment
-    category: technical
-    description: Recent code changes introduced a database connection leak
-
-action_items:
-  - title: Fix database connection leak
-    description: Identify and fix the root cause of the connection leak
-    category: immediate
-    priority: high
-    assignee: backend-team
-
-what_went_well:
-  - Quick response from on-call engineer
-
-what_went_wrong:
-  - Connection leak was not caught in pre-deployment testing
-```
-
-### 2. Generate Postmortem
-
-1. Paste your incident data into the web interface
-2. Select output format (Markdown, PDF, or both)
-3. Optionally configure Jira integration
-4. Click "Generate Postmortem"
-
-### 3. Review and Export
-
-- Preview the generated postmortem
-- Copy Markdown content
-- Download PDF version
-- View created Jira tickets (if configured)
-
-## Data Model Reference
-
-### Incident Fields
-
-- **title**: String - Incident title
-- **severity**: Enum - low, medium, high, critical
-- **start_time**: ISO 8601 datetime - When incident started
-- **end_time**: ISO 8601 datetime - When incident ended (optional)
-- **description**: String - Detailed incident description
-- **timeline**: Array of TimelineEvent objects
-- **alerts**: Array of Alert objects (optional)
-- **impact**: Array of Impact objects
-- **contributing_factors**: Array of ContributingFactor objects (optional)
-- **action_items**: Array of ActionItem objects (optional)
-- **what_went_well**: Array of strings (optional)
-- **what_went_wrong**: Array of strings (optional)
-
-### TimelineEvent
-
-- **timestamp**: ISO 8601 datetime
-- **event**: String - Description of the event
-- **severity**: Enum - low, medium, high, critical (default: medium)
-- **source**: String - Source of the event (optional)
-
-### Alert
-
-- **name**: String - Alert name
-- **timestamp**: ISO 8601 datetime
-- **severity**: Enum - low, medium, high, critical
-- **description**: String - Alert description
-- **source**: String - Alert source
-
-### Impact
-
-- **type**: Enum - availability, performance, functionality, data, security
-- **description**: String - Impact description
-- **affected_users**: Integer - Number of affected users (optional)
-- **affected_services**: Array of strings - Affected service names (optional)
-- **duration_minutes**: Integer - Impact duration in minutes (optional)
-
-### ContributingFactor
-
-- **factor**: String - Factor description
-- **category**: String - technical, process, people, external
-- **description**: String - Detailed description
-
-### ActionItem
-
-- **title**: String - Action item title
-- **description**: String - Detailed description
-- **category**: String - immediate, short_term, long_term, preventive
-- **priority**: Enum - low, medium, high, critical
-- **assignee**: String - Assigned person or team (optional)
-- **due_date**: ISO 8601 date - Due date (optional)
-
-## Jira Integration
-
-### Setup
-
-1. Configure Jira credentials using environment variables:
-
-```bash
-export JIRA_URL="https://your-company.atlassian.net"
-export JIRA_USERNAME="your-email@company.com"
-export JIRA_TOKEN="your-api-token"
-export JIRA_PROJECT_KEY="INC"
-```
-
-2. Generate an API token in Jira:
-   - Go to Account Settings > Security > API tokens
-   - Create and copy the token
-
-### Features
-
-- Automatic ticket creation for action items
-- Proper issue type mapping (Bug, Task, Story)
-- Priority mapping based on action item priority
-- Automatic labeling and assignment
-- Links back to incident postmortem
-
-## Configuration
-
-### Environment Variables
+### **Environment Variables**
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| DEBUG | false | Enable debug mode |
-| HOST | 0.0.0.0 | Server host |
-| PORT | 8000 | Server port |
-| JIRA_URL | - | Jira instance URL |
-| JIRA_USERNAME | - | Jira username |
-| JIRA_TOKEN | - | Jira API token |
-| JIRA_PROJECT_KEY | INC | Default Jira project key |
-| OUTPUT_DIR | outputs | Directory for generated files |
-| TEMP_DIR | temp | Directory for temporary files |
+| `DEBUG` | false | Enable debug mode |
+| `HOST` | 0.0.0.0 | Server host |
+| `PORT` | 8000 | Server port |
+| `DATABASE_URL` | sqlite:///./incident_postmortem.db | Database connection string |
+| `SECRET_KEY` | - | JWT secret key (required) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | 30 | Token expiration time |
 
-### Docker Deployment
+#### **Authentication**
+| Variable | Description |
+|----------|-------------|
+| `SECRET_KEY` | JWT signing secret (generate with: `openssl rand -hex 32`) |
 
-1. Build the Docker image:
+#### **Email Configuration**
+| Variable | Description |
+|----------|-------------|
+| `SMTP_SERVER` | SMTP server hostname |
+| `SMTP_PORT` | SMTP port (default: 587) |
+| `SMTP_USERNAME` | SMTP username |
+| `SMTP_PASSWORD` | SMTP password |
+| `SMTP_FROM_EMAIL` | From email address |
+| `SMTP_USE_TLS` | Use TLS (default: true) |
+
+#### **Slack Integration**
+| Variable | Description |
+|----------|-------------|
+| `SLACK_BOT_TOKEN` | Slack bot token for notifications |
+
+#### **Jira Integration**
+| Variable | Description |
+|----------|-------------|
+| `JIRA_URL` | Jira instance URL |
+| `JIRA_USERNAME` | Jira username |
+| `JIRA_TOKEN` | Jira API token |
+| `JIRA_PROJECT_KEY` | Default project key (INC) |
+
+#### **Notification Settings**
+| Variable | Description |
+|----------|-------------|
+| `SLA_ALERT_RECIPIENTS` | Comma-separated list of SLA alert recipients |
+| `ESCALATION_RECIPIENTS` | Comma-separated list of escalation recipients |
+
+## **Usage Guide**
+
+### **1. User Management**
+
+#### **Creating Users (Admin only)**
 ```bash
-docker build -t incident-postmortem-generator .
-```
-
-2. Run with environment variables:
-```bash
-docker run -p 8000:8000 \
-  -e JIRA_URL="https://your-company.atlassian.net" \
-  -e JIRA_USERNAME="your-email@company.com" \
-  -e JIRA_TOKEN="your-api-token" \
-  incident-postmortem-generator
-```
-
-3. Or use docker-compose:
-```yaml
-version: '3.8'
-services:
-  postmortem-generator:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - DEBUG=false
-      - JIRA_URL=https://your-company.atlassian.net
-      - JIRA_USERNAME=your-email@company.com
-      - JIRA_TOKEN=your-api-token
-      - JIRA_PROJECT_KEY=INC
-    volumes:
-      - ./outputs:/app/outputs
-```
-
-## API Usage
-
-### Generate Postmortem
-
-```bash
-curl -X POST "http://localhost:8000/api/generate" \
+curl -X POST "http://localhost:8000/auth/register" \
+  -H "Authorization: Bearer <admin-token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "incident_data": {
-      "title": "Sample Incident",
-      "severity": "high",
-      "start_time": "2024-01-15T10:30:00Z",
-      "description": "Sample incident description",
-      "timeline": [],
-      "impact": [],
-      "contributing_factors": [],
-      "action_items": [],
-      "what_went_well": [],
-      "what_went_wrong": []
-    },
-    "format": "markdown",
-    "jira_config": {
-      "url": "https://your-company.atlassian.net",
-      "username": "your-email@company.com",
-      "token": "your-api-token",
-      "project_key": "INC"
-    }
+    "username": "johndoe",
+    "email": "john@company.com",
+    "password": "securepassword",
+    "full_name": "John Doe",
+    "role": "editor"
   }'
 ```
 
-### Health Check
-
+#### **Login**
 ```bash
-curl "http://localhost:8000/api/health"
+curl -X POST "http://localhost:8000/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "johndoe",
+    "password": "securepassword"
+  }'
 ```
 
-## Development
+### **2. Incident Management**
 
-### Project Structure
-
-```
-incident-postmortem-generator/
-├── app/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI application
-│   ├── models.py            # Pydantic data models
-│   ├── generator.py         # Postmortem generation logic
-│   ├── templates.py         # Jinja2 templates
-│   ├── pdf_converter.py     # PDF generation
-│   └── jira_integration.py  # Jira API integration
-├── templates/
-│   ├── index.html           # Main web interface
-│   └── result.html          # Results display
-├── static/
-│   └── style.css            # Static styles
-├── config.py                # Configuration management
-├── run.py                   # Application entry point
-├── requirements.txt         # Python dependencies
-└── README.md               # This file
-```
-
-### Running in Development Mode
-
+#### **Create Incident**
 ```bash
-export DEBUG=true
+curl -X POST "http://localhost:8000/api/incidents" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d @incident_data.json
+```
+
+#### **Search Incidents**
+```bash
+curl "http://localhost:8000/api/incidents?severity=high&status=published" \
+  -H "Authorization: Bearer <token>"
+```
+
+#### **Export to PDF**
+```bash
+curl -X POST "http://localhost:8000/api/incidents/123/export/pdf" \
+  -H "Authorization: Bearer <token>" \
+  --output incident_123.pdf
+```
+
+### **3. Analytics and Reporting**
+
+#### **Get Metrics**
+```bash
+curl "http://localhost:8000/api/analytics/metrics?start_date=2024-01-01&end_date=2024-01-31" \
+  -H "Authorization: Bearer <token>"
+```
+
+#### **SLA Report**
+```bash
+curl "http://localhost:8000/api/analytics/sla?start_date=2024-01-01&end_date=2024-01-31" \
+  -H "Authorization: Bearer <token>"
+```
+
+## **Architecture**
+
+### **System Components**
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Frontend │    │   API Gateway   │    │   Auth Service │
+│   (FastAPI)    │◄──►│   (FastAPI)    │◄──►│   (JWT)        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Analytics     │    │   Notification  │    │   Audit Log     │
+│   Service      │    │   Service      │    │   Service      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Database Layer                        │
+│              (PostgreSQL / SQLite)                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### **Data Models**
+
+#### **User Management**
+- **Users**: Authentication, roles, permissions
+- **Roles**: Admin, Editor, Viewer with granular permissions
+
+#### **Incident Management**
+- **Incidents**: Core incident data with full history
+- **Timeline**: Event timeline with timestamps and sources
+- **Impact**: Business impact analysis with metrics
+- **Action Items**: Trackable tasks with assignments and due dates
+
+#### **Analytics & Compliance**
+- **SLA Metrics**: Automated SLA tracking and compliance
+- **Analytics**: Custom metrics and trend analysis
+- **Audit Logs**: Complete audit trail for compliance
+
+## **Security Features**
+
+### **Authentication & Authorization**
+- **JWT-based Authentication**: Secure token-based auth
+- **Role-based Access Control**: Granular permissions by role
+- **Session Management**: Secure session handling
+- **Password Security**: Bcrypt hashing with salt
+
+### **API Security**
+- **Rate Limiting**: Prevent abuse and ensure availability
+- **CORS Configuration**: Proper cross-origin resource sharing
+- **Input Validation**: Comprehensive input sanitization
+- **SQL Injection Protection**: Parameterized queries
+
+### **Audit & Compliance**
+- **Complete Audit Trail**: Log all user actions
+- **Data Retention**: Configurable retention policies
+- **Compliance Reporting**: Generate compliance reports
+- **Privacy Controls**: Data privacy and GDPR considerations
+
+## **Monitoring & Observability**
+
+### **Metrics Collection**
+- **Application Metrics**: Response times, error rates, user activity
+- **Business Metrics**: Incident volume, SLA compliance, resolution times
+- **System Metrics**: Database performance, resource usage
+- **Custom Metrics**: Extensible metric collection
+
+### **Alerting**
+- **SLA Breaches**: Automatic alerts for SLA violations
+- **System Health**: Application and infrastructure health
+- **Business Alerts**: Critical incidents and escalations
+- **Custom Alerts**: Configurable alert rules
+
+### **Integrations**
+- **Prometheus**: Export metrics for monitoring
+- **Grafana**: Pre-built dashboards
+- **PagerDuty**: Critical incident escalation
+- **Custom Webhooks**: Flexible integration options
+
+## **Docker Deployment**
+
+### **Development Environment**
+```bash
+docker-compose -f docker-compose.dev.yml up
+```
+
+### **Production Environment**
+```bash
+# Configure environment variables
+export DATABASE_URL="postgresql://user:pass@db:5432/incident_db"
+export SECRET_KEY="your-secret-key"
+export SMTP_SERVER="smtp.company.com"
+
+# Deploy
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### **Kubernetes Deployment**
+```bash
+# Apply configurations
+kubectl apply -f k8s/
+```
+
+## **Testing**
+
+### **Unit Tests**
+```bash
+# Install test dependencies
+pip install pytest pytest-asyncio pytest-cov
+
+# Run tests
+pytest tests/ --cov=app --cov-report=html
+```
+
+### **Integration Tests**
+```bash
+# Run integration tests
+pytest tests/integration/ --env=test
+```
+
+### **Load Testing**
+```bash
+# Install load testing tools
+pip install locust
+
+# Run load tests
+locust -f tests/load_test.py --host=http://localhost:8000
+```
+
+## **Development Guide**
+
+### **Setting Up Development Environment**
+```bash
+# Clone repository
+git clone <repository-url>
+cd incident-postmortem-generator
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Setup database
+createdb incident_dev
+export DATABASE_URL="postgresql://localhost/incident_dev"
+
+# Run migrations
+alembic upgrade head
+
+# Start development server
 python run.py
 ```
 
-### Testing
-
+### **Code Style**
 ```bash
-# Install test dependencies
-pip install pytest pytest-asyncio
+# Format code
+black app/ tests/
+isort app/ tests/
 
-# Run tests
-pytest tests/
+# Lint code
+flake8 app/ tests/
+mypy app/
+
+# Run pre-commit hooks
+pre-commit run --all-files
 ```
 
-## Troubleshooting
-
-### PDF Generation Issues
-
-If PDF generation fails, ensure you have the required system dependencies:
-
-**Ubuntu/Debian:**
+### **Database Migrations**
 ```bash
-sudo apt-get update
-sudo apt-get install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0
+# Create migration
+alembic revision --autogenerate -m "Add new feature"
+
+# Apply migration
+alembic upgrade head
+
+# Downgrade migration
+alembic downgrade -1
 ```
 
-**macOS:**
+## **Troubleshooting**
+
+### **Common Issues**
+
+#### **Database Connection Issues**
 ```bash
-brew install pango
+# Check database connection
+python -c "from app.database import engine; print(engine.execute('SELECT 1').scalar())"
+
+# Reset database
+alembic downgrade base
+alembic upgrade head
 ```
 
-**Windows:**
-PDF generation should work out of the box with the included dependencies.
+#### **Authentication Issues**
+```bash
+# Generate new secret key
+openssl rand -hex 32
 
-### Jira Integration Issues
+# Test JWT token
+python -c "
+import jwt
+token = jwt.encode({'test': 'data'}, 'your-secret', algorithm='HS256')
+print(jwt.decode(token, 'your-secret', algorithms=['HS256']))
+"
+```
 
-1. Verify your Jira URL and credentials
-2. Ensure you have proper permissions in the Jira project
-3. Check that the project key exists
-4. Verify API token has the necessary permissions
+#### **Performance Issues**
+```bash
+# Check database performance
+python -c "
+from app.database import engine
+print(engine.execute('EXPLAIN ANALYZE SELECT * FROM incidents LIMIT 10').fetchall())
+"
+```
 
-### Common Errors
+### **Monitoring Issues**
+```bash
+# Check application logs
+docker-compose logs app
 
-- **Validation errors**: Check that your incident data matches the required schema
-- **Connection timeouts**: Increase timeout values for slow systems
-- **Memory issues**: Reduce the size of incident data or increase system memory
+# Check database logs
+docker-compose logs db
 
-## Contributing
+# Check system resources
+docker stats
+```
 
+## **API Reference**
+
+### **Authentication Endpoints**
+- `POST /auth/login` - User login
+- `POST /auth/register` - User registration (admin only)
+- `GET /auth/me` - Get current user info
+
+### **Incident Endpoints**
+- `GET /api/incidents` - List incidents with filtering
+- `POST /api/incidents` - Create new incident
+- `GET /api/incidents/{id}` - Get incident details
+- `PUT /api/incidents/{id}` - Update incident
+- `DELETE /api/incidents/{id}` - Delete incident
+- `POST /api/incidents/{id}/publish` - Publish incident
+- `GET /api/incidents/{id}/history` - Get audit history
+- `POST /api/incidents/{id}/export/pdf` - Export to PDF
+
+### **Analytics Endpoints**
+- `GET /api/analytics/metrics` - Get incident metrics
+- `GET /api/analytics/sla` - Get SLA compliance report
+- `GET /api/analytics/heatmap` - Get incident heatmap
+
+### **System Endpoints**
+- `GET /api/health` - Health check
+- `GET /api/version` - Version information
+
+## **Contributing**
+
+### **Development Workflow**
 1. Fork the repository
-2. Create a feature branch
+2. Create feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes
 4. Add tests for new functionality
-5. Submit a pull request
+5. Ensure all tests pass: `pytest`
+6. Commit your changes: `git commit -m 'Add amazing feature'`
+7. Push to branch: `git push origin feature/amazing-feature`
+8. Open Pull Request
 
-## License
+### **Code Standards**
+- Follow PEP 8 style guidelines
+- Write comprehensive tests
+- Update documentation
+- Use meaningful commit messages
+- Ensure CI/CD pipeline passes
+
+## **License**
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Support
+## **Support**
 
-For issues and questions:
-1. Check the troubleshooting section
-2. Search existing GitHub issues
-3. Create a new issue with detailed information
+### **Documentation**
+- [User Guide](docs/user-guide.md)
+- [API Documentation](docs/api.md)
+- [Deployment Guide](docs/deployment.md)
+- [Troubleshooting](docs/troubleshooting.md)
 
-## Changelog
+### **Community**
+- [GitHub Issues](https://github.com/company/incident-postmortem-generator/issues)
+- [Discussions](https://github.com/company/incident-postmortem-generator/discussions)
+- [Wiki](https://github.com/company/incident-postmortem-generator/wiki)
 
-### Version 1.0.0
-- Initial release
-- Web-based interface
+### **Enterprise Support**
+For enterprise support, custom development, or consulting:
+- Email: enterprise@company.com
+- Phone: +1-555-0123
+- Website: https://company.com/enterprise-support
+
+## **Changelog**
+
+### **Version 2.0.0** (Enterprise Release)
+- Added user authentication and role-based access control
+- Implemented database storage with full history
+- Added advanced search and filtering capabilities
+- Built analytics dashboard with real-time metrics
+- Implemented SLA tracking and compliance reporting
+- Added multi-channel notification system (Email, Slack, Webhooks)
+- Implemented comprehensive audit logging
+- Added API rate limiting and security features
+- Created enterprise-grade configuration management
+- Added Docker and Kubernetes deployment support
+
+### **Version 1.0.0** (Initial Release)
+- Basic incident postmortem generation
 - JSON/YAML input support
 - Markdown and PDF output
 - Jira integration
-- Google SRE-style postmortem generation
+- Web-based interface
