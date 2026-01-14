@@ -133,10 +133,10 @@ curl -X POST "http://localhost:8000/auth/register" \
   -H "Authorization: Bearer <admin-token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "johndoe",
-    "email": "john@company.com",
+    "username": "grv",
+    "email": "grv@company.com",
     "password": "securepassword",
-    "full_name": "John Doe",
+    "full_name": "Awesome GRV",
     "role": "editor"
   }'
 ```
@@ -146,7 +146,7 @@ curl -X POST "http://localhost:8000/auth/register" \
 curl -X POST "http://localhost:8000/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "johndoe",
+    "username": "grv",
     "password": "securepassword"
   }'
 ```
