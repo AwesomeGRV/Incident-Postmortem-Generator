@@ -352,11 +352,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Discussions](https://github.com/company/incident-postmortem-generator/discussions)
 - [Wiki](https://github.com/company/incident-postmortem-generator/wiki)
 
-### Enterprise Support
-For enterprise support, custom development, or consulting:
-- Email: enterprise@company.com
-- Phone: +1-555-0123
-- Website: https://company.com/enterprise-support
+
 
 ## Changelog
 
