@@ -1,44 +1,73 @@
-# Enterprise Incident Postmortem Generator
+# Enterprise Incident Postmortem Generator v2.1
 
-A production-ready, enterprise-grade web application for generating comprehensive incident postmortems from timeline data. Built for SRE teams with advanced features including authentication, analytics, SLA tracking, notifications, and role-based access control.
+A production-ready, enterprise-grade web application for generating comprehensive incident postmortems with AI-powered insights, real-time collaboration, and advanced compliance features.
 
-## **Enterprise Features**
+## What's New in v2.1
 
-### **Core Capabilities**
-- **Web-based Interface**: Clean, responsive UI with modern design
-- **Multiple Input Formats**: Accept both JSON and YAML incident data
-- **Google SRE-style Postmortems**: Follow industry best practices
-- **Contributing Factors Analysis**: Categorize technical, process, people, and external factors
-- **Action Items Management**: Generate categorized action items with priorities
-- **What Went Well/Wrong Analysis**: Structured analysis of incident response
+### Major Enhancements
 
-### **Enterprise Features**
-- **Authentication & Authorization**: JWT-based auth with role-based access control
-- **User Management**: Admin, Editor, and Viewer roles with granular permissions
-- **Analytics Dashboard**: Real-time metrics, trends, and SLA compliance reporting
-- **SLA Tracking**: Automated SLA monitoring and breach alerts
-- **Notification System**: Email, Slack, and webhook notifications
-- **Audit Logging**: Complete audit trail for compliance and security
-- **Advanced Search**: Full-text search with filtering capabilities
-- **Database Storage**: Persistent storage with history and versioning
-- **API Rate Limiting**: Protect against abuse and ensure performance
-- **Production Ready**: Docker support, environment configuration, monitoring
+- **AI-Powered Incident Classification**: Automatic incident categorization and severity scoring using machine learning
+- **Real-Time WebSocket Notifications**: Live updates for incident creation, updates, and SLA breaches
+- **Comprehensive Template System**: Pre-built incident templates for different categories
+- **Progressive Web App (PWA)**: Mobile-responsive interface with offline capabilities
+- **Advanced Analytics**: ML-based predictions and trend analysis
+- **Compliance & Audit System**: Full audit trail with compliance reporting for GDPR, SOX, HIPAA, ISO27001, PCI-DSS, and SOC2
 
-### **Integrations**
-- **Jira Integration**: Automatically create tickets for action items
-- **Slack Notifications**: Real-time alerts and updates
-- **Email Notifications**: Automated email reports and alerts
-- **Webhook Support**: Custom integrations via webhooks
-- **Prometheus Metrics**: Export metrics for monitoring
+## Key Features
 
-## **Quick Start**
+### Core Capabilities
+- **Web-based Interface**: Modern, responsive UI with real-time updates
+- **Multiple Input Formats**: Support for JSON and YAML incident data
+- **Google SRE-style Postmortems**: Industry-standard postmortem generation
+- **Contributing Factors Analysis**: Technical, process, people, and external factors
+- **Action Items Management**: Categorized tasks with priorities and assignments
+- **What Went Well/Wrong Analysis**: Structured incident response evaluation
 
-### **Prerequisites**
+### AI & Machine Learning
+- **Automatic Incident Classification**: ML-powered categorization (Database, Network, Application, Security, etc.)
+- **Severity Prediction**: Intelligent severity scoring based on incident characteristics
+- **Timeline Analysis**: Pattern recognition in incident timelines
+- **Resolution Time Prediction**: AI-based estimates for incident resolution
+- **Smart Recommendations**: Context-aware action item suggestions
+- **Incident Suggestions**: Auto-complete for incident titles and descriptions
+
+### Real-Time Features
+- **WebSocket Notifications**: Live updates for all incident activities
+- **Real-Time Dashboard**: Dynamic statistics and incident updates
+- **Push Notifications**: Browser notifications for critical updates
+- **Live Collaboration**: Multi-user incident editing (coming soon)
+- **SLA Breach Alerts**: Automatic notifications for SLA violations
+
+### Template System
+- **Pre-built Templates**: Database, Application, Network, Security, Performance incidents
+- **Custom Templates**: Create and manage organization-specific templates
+- **Template Categories**: Organized by incident type and severity
+- **Dynamic Fields**: Configurable form fields with validation
+- **Template Application**: One-click incident creation from templates
+
+### Compliance & Audit
+- **Complete Audit Trail**: Every action logged with timestamps and user details
+- **Compliance Reporting**: Automated reports for major standards (GDPR, SOX, HIPAA, ISO27001, PCI-DSS, SOC2)
+- **Violation Detection**: Automatic compliance violation identification
+- **Audit Export**: JSON and CSV export capabilities
+- **Retention Policies**: Configurable data retention and archiving
+
+### Mobile & PWA
+- **Progressive Web App**: Installable on mobile devices
+- **Offline Support**: Cached data for offline viewing
+- **Push Notifications**: Native mobile notifications
+- **Responsive Design**: Optimized for all screen sizes
+- **Touch Interface**: Mobile-friendly interactions
+
+## Quick Start
+
+### Prerequisites
+
 - Python 3.8 or higher
 - PostgreSQL (recommended) or SQLite for development
-- Redis (for background tasks and caching)
+- Redis (for background tasks and caching) - optional
 
-### **Installation**
+### Installation
 
 1. **Clone the repository:**
 ```bash
@@ -76,9 +105,47 @@ python run.py
 http://localhost:8000
 ```
 
-## **Configuration**
+## Usage Guide
 
-### **Environment Variables**
+### AI-Powered Incident Creation
+
+1. Navigate to "New Incident"
+2. Enter incident details or use a template
+3. AI will automatically:
+   - Classify incident category
+   - Suggest severity level
+   - Identify contributing factors
+   - Recommend action items
+   - Estimate resolution time
+
+### Real-Time Notifications
+
+- **WebSocket Connection**: Automatically connects when you open dashboard
+- **Notification Types**: 
+  - New incidents created
+  - Incident updates
+  - Published postmortems
+  - SLA breaches
+  - Critical alerts
+
+### Template Management
+
+1. Go to Templates page
+2. Browse pre-built templates by category
+3. Apply template to create incidents quickly
+4. Create custom templates for your organization
+
+### Compliance Reporting
+
+1. Navigate to Compliance section (admin only)
+2. Select compliance standard (GDPR, SOX, HIPAA, etc.)
+3. Choose reporting period
+4. Generate comprehensive compliance report
+5. Export audit trails in JSON/CSV format
+
+## Configuration
+
+### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -89,212 +156,102 @@ http://localhost:8000
 | `SECRET_KEY` | - | JWT secret key (required) |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | 30 | Token expiration time |
 
-#### **Authentication**
+#### AI/ML Configuration
 | Variable | Description |
 |----------|-------------|
-| `SECRET_KEY` | JWT signing secret (generate with: `openssl rand -hex 32`) |
+| `AI_MODEL_PATH` | Path to trained AI models (auto-created if not exists) |
+| `NLTK_DATA_PATH` | Path for NLTK data downloads |
 
-#### **Email Configuration**
+#### WebSocket Configuration
 | Variable | Description |
 |----------|-------------|
-| `SMTP_SERVER` | SMTP server hostname |
-| `SMTP_PORT` | SMTP port (default: 587) |
-| `SMTP_USERNAME` | SMTP username |
-| `SMTP_PASSWORD` | SMTP password |
-| `SMTP_FROM_EMAIL` | From email address |
-| `SMTP_USE_TLS` | Use TLS (default: true) |
+| `WEBSOCKET_HEARTBEAT_INTERVAL` | WebSocket heartbeat interval in seconds |
 
-#### **Slack Integration**
+#### Compliance Configuration
 | Variable | Description |
 |----------|-------------|
-| `SLACK_BOT_TOKEN` | Slack bot token for notifications |
+| `AUDIT_RETENTION_DAYS` | Days to retain audit logs |
+| `COMPLIANCE_REPORT_PATH` | Path for compliance reports |
 
-#### **Jira Integration**
-| Variable | Description |
-|----------|-------------|
-| `JIRA_URL` | Jira instance URL |
-| `JIRA_USERNAME` | Jira username |
-| `JIRA_TOKEN` | Jira API token |
-| `JIRA_PROJECT_KEY` | Default project key (INC) |
+## API Reference
 
-#### **Notification Settings**
-| Variable | Description |
-|----------|-------------|
-| `SLA_ALERT_RECIPIENTS` | Comma-separated list of SLA alert recipients |
-| `ESCALATION_RECIPIENTS` | Comma-separated list of escalation recipients |
+### Authentication Endpoints
+- `POST /auth/login` - User login
+- `POST /auth/register` - User registration (admin only)
+- `GET /auth/me` - Get current user info
 
-## **Usage Guide**
+### Incident Endpoints
+- `GET /api/incidents` - List incidents with filtering
+- `POST /api/incidents` - Create new incident (with AI classification)
+- `GET /api/incidents/{id}` - Get incident details
+- `PUT /api/incidents/{id}` - Update incident
+- `DELETE /api/incidents/{id}` - Delete incident
+- `POST /api/incidents/{id}/publish` - Publish incident
+- `GET /api/incidents/{id}/history` - Get audit history
+- `POST /api/incidents/{id}/export/pdf` - Export to PDF
 
-### **1. User Management**
+### AI Endpoints
+- `POST /api/ai/classify` - Classify incident using AI
+- `POST /api/ai/analyze-timeline` - Analyze incident timeline
+- `POST /api/ai/predict-resolution-time` - Predict resolution time
+- `GET /api/ai/incident-suggestions` - Get incident suggestions
+- `GET /api/ai/insights` - Get AI-powered dashboard insights
 
-#### **Creating Users (Admin only)**
-```bash
-curl -X POST "http://localhost:8000/auth/register" \
-  -H "Authorization: Bearer <admin-token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "grv",
-    "email": "grv@company.com",
-    "password": "securepassword",
-    "full_name": "Awesome GRV",
-    "role": "editor"
-  }'
-```
+### Template Endpoints
+- `GET /api/templates` - Get all templates
+- `GET /api/templates/{id}` - Get specific template
+- `POST /api/templates` - Create new template (admin only)
+- `PUT /api/templates/{id}` - Update template (admin only)
+- `DELETE /api/templates/{id}` - Delete template (admin only)
+- `POST /api/templates/{id}/apply` - Apply template to incident
 
-#### **Login**
-```bash
-curl -X POST "http://localhost:8000/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "grv",
-    "password": "securepassword"
-  }'
-```
+### Compliance & Audit Endpoints
+- `GET /api/audit/trail` - Get audit trail (admin only)
+- `POST /api/compliance/reports` - Generate compliance report (admin only)
+- `GET /api/compliance/reports` - Get compliance reports (admin only)
+- `GET /api/compliance/reports/{id}` - Get specific compliance report (admin only)
+- `GET /api/audit/export` - Export audit trail (admin only)
 
-### **2. Incident Management**
+### WebSocket Endpoints
+- `WS /ws/{user_id}` - Real-time notifications
 
-#### **Create Incident**
-```bash
-curl -X POST "http://localhost:8000/api/incidents" \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d @incident_data.json
-```
+## Security Features
 
-#### **Search Incidents**
-```bash
-curl "http://localhost:8000/api/incidents?severity=high&status=published" \
-  -H "Authorization: Bearer <token>"
-```
-
-#### **Export to PDF**
-```bash
-curl -X POST "http://localhost:8000/api/incidents/123/export/pdf" \
-  -H "Authorization: Bearer <token>" \
-  --output incident_123.pdf
-```
-
-### **3. Analytics and Reporting**
-
-#### **Get Metrics**
-```bash
-curl "http://localhost:8000/api/analytics/metrics?start_date=2024-01-01&end_date=2024-01-31" \
-  -H "Authorization: Bearer <token>"
-```
-
-#### **SLA Report**
-```bash
-curl "http://localhost:8000/api/analytics/sla?start_date=2024-01-01&end_date=2024-01-31" \
-  -H "Authorization: Bearer <token>"
-```
-
-## **Architecture**
-
-### **System Components**
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Frontend │    │   API Gateway   │    │   Auth Service │
-│   (FastAPI)    │◄──►│   (FastAPI)    │◄──►│   (JWT)        │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Analytics     │    │   Notification  │    │   Audit Log     │
-│   Service      │    │   Service      │    │   Service      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Database Layer                        │
-│              (PostgreSQL / SQLite)                     │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### **Data Models**
-
-#### **User Management**
-- **Users**: Authentication, roles, permissions
-- **Roles**: Admin, Editor, Viewer with granular permissions
-
-#### **Incident Management**
-- **Incidents**: Core incident data with full history
-- **Timeline**: Event timeline with timestamps and sources
-- **Impact**: Business impact analysis with metrics
-- **Action Items**: Trackable tasks with assignments and due dates
-
-#### **Analytics & Compliance**
-- **SLA Metrics**: Automated SLA tracking and compliance
-- **Analytics**: Custom metrics and trend analysis
-- **Audit Logs**: Complete audit trail for compliance
-
-## **Security Features**
-
-### **Authentication & Authorization**
+### Authentication & Authorization
 - **JWT-based Authentication**: Secure token-based auth
-- **Role-based Access Control**: Granular permissions by role
+- **Role-based Access Control**: Admin, Editor, Viewer roles
 - **Session Management**: Secure session handling
 - **Password Security**: Bcrypt hashing with salt
 
-### **API Security**
-- **Rate Limiting**: Prevent abuse and ensure availability
+### API Security
+- **Rate Limiting**: Prevent abuse with slowapi
 - **CORS Configuration**: Proper cross-origin resource sharing
 - **Input Validation**: Comprehensive input sanitization
 - **SQL Injection Protection**: Parameterized queries
 
-### **Audit & Compliance**
+### Audit & Compliance
 - **Complete Audit Trail**: Log all user actions
+- **Compliance Reporting**: GDPR, SOX, HIPAA, ISO27001, PCI-DSS, SOC2
 - **Data Retention**: Configurable retention policies
-- **Compliance Reporting**: Generate compliance reports
 - **Privacy Controls**: Data privacy and GDPR considerations
 
-## **Monitoring & Observability**
+## Mobile & PWA Features
 
-### **Metrics Collection**
-- **Application Metrics**: Response times, error rates, user activity
-- **Business Metrics**: Incident volume, SLA compliance, resolution times
-- **System Metrics**: Database performance, resource usage
-- **Custom Metrics**: Extensible metric collection
+### Progressive Web App
+- **Installable**: Add to home screen on mobile devices
+- **Offline Support**: Cached data for offline viewing
+- **Push Notifications**: Native mobile notifications
+- **Responsive Design**: Optimized for all screen sizes
 
-### **Alerting**
-- **SLA Breaches**: Automatic alerts for SLA violations
-- **System Health**: Application and infrastructure health
-- **Business Alerts**: Critical incidents and escalations
-- **Custom Alerts**: Configurable alert rules
+### Service Worker
+- **Background Sync**: Sync offline changes when online
+- **Cache Management**: Intelligent caching strategies
+- **Push Events**: Handle push notifications
+- **Update Management**: Seamless app updates
 
-### **Integrations**
-- **Prometheus**: Export metrics for monitoring
-- **Grafana**: Pre-built dashboards
-- **PagerDuty**: Critical incident escalation
-- **Custom Webhooks**: Flexible integration options
+## Testing
 
-## **Docker Deployment**
-
-### **Development Environment**
-```bash
-docker-compose -f docker-compose.dev.yml up
-```
-
-### **Production Environment**
-```bash
-# Configure environment variables
-export DATABASE_URL="postgresql://user:pass@db:5432/incident_db"
-export SECRET_KEY="your-secret-key"
-export SMTP_SERVER="smtp.company.com"
-
-# Deploy
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### **Kubernetes Deployment**
-```bash
-# Apply configurations
-kubectl apply -f k8s/
-```
-
-## **Testing**
-
-### **Unit Tests**
+### Unit Tests
 ```bash
 # Install test dependencies
 pip install pytest pytest-asyncio pytest-cov
@@ -303,13 +260,13 @@ pip install pytest pytest-asyncio pytest-cov
 pytest tests/ --cov=app --cov-report=html
 ```
 
-### **Integration Tests**
+### Integration Tests
 ```bash
 # Run integration tests
 pytest tests/integration/ --env=test
 ```
 
-### **Load Testing**
+### Load Testing
 ```bash
 # Install load testing tools
 pip install locust
@@ -318,136 +275,48 @@ pip install locust
 locust -f tests/load_test.py --host=http://localhost:8000
 ```
 
-## **Development Guide**
+## Deployment
 
-### **Setting Up Development Environment**
+### Docker Deployment
+
+#### Development Environment
 ```bash
-# Clone repository
-git clone <repository-url>
-cd incident-postmortem-generator
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-
-# Setup database
-createdb incident_dev
-export DATABASE_URL="postgresql://localhost/incident_dev"
-
-# Run migrations
-alembic upgrade head
-
-# Start development server
-python run.py
+docker-compose -f docker-compose.dev.yml up
 ```
 
-### **Code Style**
+#### Production Environment
 ```bash
-# Format code
-black app/ tests/
-isort app/ tests/
+# Configure environment variables
+export DATABASE_URL="postgresql://user:pass@db:5432/incident_db"
+export SECRET_KEY="your-secret-key"
 
-# Lint code
-flake8 app/ tests/
-mypy app/
-
-# Run pre-commit hooks
-pre-commit run --all-files
+# Deploy
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### **Database Migrations**
+### Kubernetes Deployment
 ```bash
-# Create migration
-alembic revision --autogenerate -m "Add new feature"
-
-# Apply migration
-alembic upgrade head
-
-# Downgrade migration
-alembic downgrade -1
+# Apply configurations
+kubectl apply -f k8s/
 ```
 
-## **Troubleshooting**
+## Monitoring & Observability
 
-### **Common Issues**
+### Metrics Collection
+- **Application Metrics**: Response times, error rates, user activity
+- **Business Metrics**: Incident volume, SLA compliance, resolution times
+- **AI Metrics**: Classification accuracy, prediction performance
+- **System Metrics**: Database performance, resource usage
 
-#### **Database Connection Issues**
-```bash
-# Check database connection
-python -c "from app.database import engine; print(engine.execute('SELECT 1').scalar())"
+### Alerting
+- **SLA Breaches**: Automatic alerts for SLA violations
+- **System Health**: Application and infrastructure health
+- **Business Alerts**: Critical incidents and escalations
+- **AI Model Drift**: Model performance degradation alerts
 
-# Reset database
-alembic downgrade base
-alembic upgrade head
-```
+## Contributing
 
-#### **Authentication Issues**
-```bash
-# Generate new secret key
-openssl rand -hex 32
-
-# Test JWT token
-python -c "
-import jwt
-token = jwt.encode({'test': 'data'}, 'your-secret', algorithm='HS256')
-print(jwt.decode(token, 'your-secret', algorithms=['HS256']))
-"
-```
-
-#### **Performance Issues**
-```bash
-# Check database performance
-python -c "
-from app.database import engine
-print(engine.execute('EXPLAIN ANALYZE SELECT * FROM incidents LIMIT 10').fetchall())
-"
-```
-
-### **Monitoring Issues**
-```bash
-# Check application logs
-docker-compose logs app
-
-# Check database logs
-docker-compose logs db
-
-# Check system resources
-docker stats
-```
-
-## **API Reference**
-
-### **Authentication Endpoints**
-- `POST /auth/login` - User login
-- `POST /auth/register` - User registration (admin only)
-- `GET /auth/me` - Get current user info
-
-### **Incident Endpoints**
-- `GET /api/incidents` - List incidents with filtering
-- `POST /api/incidents` - Create new incident
-- `GET /api/incidents/{id}` - Get incident details
-- `PUT /api/incidents/{id}` - Update incident
-- `DELETE /api/incidents/{id}` - Delete incident
-- `POST /api/incidents/{id}/publish` - Publish incident
-- `GET /api/incidents/{id}/history` - Get audit history
-- `POST /api/incidents/{id}/export/pdf` - Export to PDF
-
-### **Analytics Endpoints**
-- `GET /api/analytics/metrics` - Get incident metrics
-- `GET /api/analytics/sla` - Get SLA compliance report
-- `GET /api/analytics/heatmap` - Get incident heatmap
-
-### **System Endpoints**
-- `GET /api/health` - Health check
-- `GET /api/version` - Version information
-
-## **Contributing**
-
-### **Development Workflow**
+### Development Workflow
 1. Fork the repository
 2. Create feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes
@@ -457,39 +326,51 @@ docker stats
 7. Push to branch: `git push origin feature/amazing-feature`
 8. Open Pull Request
 
-### **Code Standards**
+### Code Standards
 - Follow PEP 8 style guidelines
 - Write comprehensive tests
 - Update documentation
 - Use meaningful commit messages
 - Ensure CI/CD pipeline passes
 
-## **License**
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## **Support**
+## Support
 
-### **Documentation**
+### Documentation
 - [User Guide](docs/user-guide.md)
 - [API Documentation](docs/api.md)
 - [Deployment Guide](docs/deployment.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [AI/ML Guide](docs/ai-ml-guide.md)
+- [Compliance Guide](docs/compliance-guide.md)
 
-### **Community**
+### Community
 - [GitHub Issues](https://github.com/company/incident-postmortem-generator/issues)
 - [Discussions](https://github.com/company/incident-postmortem-generator/discussions)
 - [Wiki](https://github.com/company/incident-postmortem-generator/wiki)
 
-### **Enterprise Support**
+### Enterprise Support
 For enterprise support, custom development, or consulting:
 - Email: enterprise@company.com
 - Phone: +1-555-0123
 - Website: https://company.com/enterprise-support
 
-## **Changelog**
+## Changelog
 
-### **Version 2.0.0** (Enterprise Release)
+### Version 2.1.0 (Latest)
+- Added AI-powered incident classification and severity prediction
+- Implemented real-time WebSocket notifications
+- Created comprehensive template system
+- Added Progressive Web App (PWA) support
+- Enhanced analytics with ML-based predictions
+- Implemented comprehensive audit trail and compliance reporting
+- Redesigned dashboard with real-time updates
+- Performance optimizations and bug fixes
+
+### Version 2.0.0 (Enterprise Release)
 - Added user authentication and role-based access control
 - Implemented database storage with full history
 - Added advanced search and filtering capabilities
@@ -501,9 +382,13 @@ For enterprise support, custom development, or consulting:
 - Created enterprise-grade configuration management
 - Added Docker and Kubernetes deployment support
 
-### **Version 1.0.0** (Initial Release)
+### Version 1.0.0 (Initial Release)
 - Basic incident postmortem generation
 - JSON/YAML input support
 - Markdown and PDF output
 - Jira integration
 - Web-based interface
+
+---
+
+**Enterprise Incident Postmortem Generator v2.1** - Transform your incident management with AI-powered insights and real-time collaboration.

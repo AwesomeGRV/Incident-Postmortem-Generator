@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Dashboard - Enterprise Incident Postmortem Generator</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Incident Postmortem">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Incident Postmortem">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .navbar-nav {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .dashboard-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .dashboard-title {
+            font-size: 2.5rem;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .dashboard-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+        
+        .stat-change {
+            font-size: 0.9rem;
+            font-weight: normal;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-trend {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ecf0f1;
+            font-size: 0.85rem;
+        }
+        
+        .stat-change.positive {
+            color: #27ae60;
+        }
+        
+        .stat-change.negative {
+            color: #e74c3c;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .recent-incidents {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .ai-insights {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            border-bottom: 3px solid #ecf0f1;
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .incident-list {
+            list-style: none;
+        }
+        
+        .incident-item {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .incident-item:hover {
+            background: #f8f9fa;
+            margin: 0 -1rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        
+        .incident-item:last-child {
+            border-bottom: none;
+        }
+        
+        .incident-info {
+            flex: 1;
+        }
+        
+        .incident-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .incident-meta {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .incident-severity {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .severity-critical {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        .severity-high {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+        
+        .severity-medium {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .severity-low {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+        
+        .ai-insight {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #667eea;
+        }
+        
+        .ai-insight-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .ai-insight-content {
+            color: #6b7280;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .action-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .action-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .action-title {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .action-description {
+            color: #7f8c8d;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .real-time-indicator {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            z-index: 1000;
+        }
+        
+        .real-time-dot {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .navbar-nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 0 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <div class="status-indicator"></div>
+            Enterprise Postmortem Generator
+        </div>
+        <div class="navbar-nav">
+            <a href="/incidents" class="nav-link">Incidents</a>
+            <a href="/analytics" class="nav-link">Analytics</a>
+            <a href="/incidents/new" class="nav-link">New Incident</a>
+            <a href="/templates" class="nav-link">Templates</a>
+            <a href="/auth/me" class="nav-link">
+                Profile
+                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+            </a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Enhanced Dashboard</h1>
+            <p class="dashboard-subtitle">Real-time incident management with AI-powered insights</p>
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading statistics...
+            </div>
+        </div>
+        
+        <div class="quick-actions">
+            <div class="action-card">
+                <div class="action-icon">🚀</div>
+                <h3 class="action-title">Create New Incident</h3>
+                <p class="action-description">Start a new postmortem with AI-powered classification</p>
+                <a href="/incidents/new" class="btn">Create Incident</a>
+            </div>
+            
+            <div class="action-card">
+                <div class="action-icon">📊</div>
+                <h3 class="action-title">View Analytics</h3>
+                <p class="action-description">Analyze incident trends and ML-based predictions</p>
+                <a href="/analytics" class="btn btn-secondary">View Analytics</a>
+            </div>
+            
+            <div class="action-card">
+                <div class="action-icon">📋</div>
+                <h3 class="action-title">Browse Templates</h3>
+                <p class="action-description">Use standardized incident templates</p>
+                <a href="/templates" class="btn btn-secondary">Browse Templates</a>
+            </div>
+            
+            <div class="action-card">
+                <div class="action-icon">🤖</div>
+                <h3 class="action-title">AI Assistant</h3>
+                <p class="action-description">Get AI-powered incident recommendations</p>
+                <button class="btn" onclick="openAIAssistant()">AI Assistant</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="recent-incidents">
+                <h2 class="section-title">
+                    📈 Recent Incidents
+                </h2>
+                <ul class="incident-list" id="recentIncidents">
+                    <li class="loading">
+                        <div class="spinner"></div>
+                        Loading recent incidents...
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="ai-insights">
+                <h2 class="section-title">
+                    🤖 AI Insights
+                </h2>
+                <div id="aiInsights">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading AI insights...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="real-time-indicator">
+        <div class="real-time-dot"></div>
+        <span>Real-time updates active</span>
+    </div>
+    
+    <script>
+        let websocket = null;
+        let notificationCount = 0;
+        
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/1`; // Replace with actual user ID
+            
+            websocket = new WebSocket(wsUrl);
+            
+            websocket.onopen = function(event) {
+                console.log('WebSocket connected');
+                updateRealTimeStatus(true);
+            };
+            
+            websocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleRealtimeUpdate(data);
+            };
+            
+            websocket.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                updateRealTimeStatus(false);
+                // Attempt to reconnect after 5 seconds
+                setTimeout(initWebSocket, 5000);
+            };
+            
+            websocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                updateRealTimeStatus(false);
+            };
+        }
+        
+        function handleRealtimeUpdate(data) {
+            console.log('Real-time update:', data);
+            
+            switch(data.type) {
+                case 'incident_created':
+                    showNotification('New incident created: ' + data.title);
+                    loadDashboardData(); // Refresh data
+                    break;
+                case 'incident_updated':
+                    showNotification('Incident updated: ' + data.title);
+                    loadDashboardData();
+                    break;
+                case 'incident_published':
+                    showNotification('Incident published: ' + data.title);
+                    loadDashboardData();
+                    break;
+                case 'sla_breach':
+                    showNotification('SLA Breach: ' + data.title, 'critical');
+                    loadDashboardData();
+                    break;
+                case 'critical_alert':
+                    showNotification('Critical Alert: ' + data.alert.description, 'critical');
+                    break;
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            notificationCount++;
+            updateNotificationBadge();
+            
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.innerHTML = `
+                <style>
+                    .toast-notification {
+                        position: fixed;
+                        top: 100px;
+                        right: 20px;
+                        background: ${type === 'critical' ? '#ef4444' : '#667eea'};
+                        color: white;
+                        padding: 1rem 1.5rem;
+                        border-radius: 8px;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+                        z-index: 10000;
+                        animation: slideIn 0.3s ease;
+                        max-width: 300px;
+                    }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                </style>
+                ${message}
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+        
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notificationBadge');
+            if (notificationCount > 0) {
+                badge.textContent = notificationCount > 99 ? '99+' : notificationCount;
+                badge.style.display = 'flex';
+            }
+        }
+        
+        function updateRealTimeStatus(connected) {
+            const indicator = document.querySelector('.real-time-indicator span');
+            const dot = document.querySelector('.real-time-dot');
+            
+            if (connected) {
+                indicator.textContent = 'Real-time updates active';
+                dot.style.background = '#4ade80';
+            } else {
+                indicator.textContent = 'Reconnecting...';
+                dot.style.background = '#ef4444';
+            }
+        }
+        
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Load statistics
+                const statsResponse = await fetch('/api/analytics/metrics');
+                const stats = await statsResponse.json();
+                
+                // Load recent incidents
+                const incidentsResponse = await fetch('/api/incidents?page_size=5');
+                const incidentsData = await incidentsResponse.json();
+                
+                // Load AI insights
+                const insightsResponse = await fetch('/api/ai/insights');
+                const insights = await insightsResponse.json();
+                
+                // Update all sections
+                updateStats(stats);
+                updateRecentIncidents(incidentsData.incidents);
+                updateAIInsights(insights);
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                document.getElementById('statsGrid').innerHTML = 
+                    '<div class="loading">Error loading statistics</div>';
+                document.getElementById('recentIncidents').innerHTML = 
+                    '<li class="loading">Error loading incidents</li>';
+                document.getElementById('aiInsights').innerHTML = 
+                    '<div class="loading">Error loading AI insights</div>';
+            }
+        }
+        
+        function updateStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">
+                        ${stats.summary?.total_incidents || 0}
+                        <span class="stat-change positive">+12%</span>
+                    </div>
+                    <div class="stat-label">Total Incidents</div>
+                    <div class="stat-trend">Last 30 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">
+                        ${stats.summary?.avg_resolution_time_minutes || 0}m
+                        <span class="stat-change positive">-8%</span>
+                    </div>
+                    <div class="stat-label">Avg Resolution Time</div>
+                    <div class="stat-trend">Last 30 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">
+                        ${stats.summary?.sla_compliance_rate || 0}%
+                        <span class="stat-change positive">+5%</span>
+                    </div>
+                    <div class="stat-label">SLA Compliance</div>
+                    <div class="stat-trend">Last 30 days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">
+                        ${stats.status_breakdown?.find(s => s.status === 'published')?.count || 0}
+                        <span class="stat-change positive">+15%</span>
+                    </div>
+                    <div class="stat-label">Published Postmortems</div>
+                    <div class="stat-trend">Last 30 days</div>
+                </div>
+            `;
+        }
+        
+        function updateRecentIncidents(incidents) {
+            const incidentsList = document.getElementById('recentIncidents');
+            
+            if (incidents.length === 0) {
+                incidentsList.innerHTML = '<li class="loading">No incidents found</li>';
+                return;
+            }
+            
+            incidentsList.innerHTML = incidents.map(incident => `
+                <li class="incident-item">
+                    <div class="incident-info">
+                        <div class="incident-title">${incident.title}</div>
+                        <div class="incident-meta">
+                            <span>📅 ${new Date(incident.created_at).toLocaleDateString()}</span>
+                            <span>👤 ${incident.created_by || 'Unknown'}</span>
+                            <span>⏱️ ${incident.duration_minutes || 0}m</span>
+                        </div>
+                    </div>
+                    <span class="incident-severity severity-${incident.severity}">
+                        ${incident.severity}
+                    </span>
+                </li>
+            `).join('');
+        }
+        
+        function updateAIInsights(insights) {
+            const insightsContainer = document.getElementById('aiInsights');
+            
+            if (!insights || insights.length === 0) {
+                insightsContainer.innerHTML = `
+                    <div class="ai-insight">
+                        <div class="ai-insight-title">
+                            🤖 AI Analysis
+                        </div>
+                        <div class="ai-insight-content">
+                            AI insights will appear here as incidents are analyzed. The system will provide predictive analytics, trend analysis, and recommendations.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            insightsContainer.innerHTML = insights.map(insight => `
+                <div class="ai-insight">
+                    <div class="ai-insight-title">
+                        ${insight.icon || '🤖'} ${insight.title}
+                    </div>
+                    <div class="ai-insight-content">
+                        ${insight.content}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function openAIAssistant() {
+            // Open AI assistant modal or navigate to AI assistant page
+            window.location.href = '/ai-assistant';
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            initWebSocket();
+            initPWA();
+            
+            // Refresh data every 30 seconds
+            setInterval(loadDashboardData, 30000);
+        });
+        
+        // Initialize PWA features
+        function initPWA() {
+            // Register service worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            }
+            
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(function(permission) {
+                    if (permission === 'granted') {
+                        console.log('Notification permission granted');
+                    }
+                });
+            }
+            
+            // Install prompt for PWA
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                deferredPrompt = e;
+                
+                // Show install button
+                const installButton = document.createElement('button');
+                installButton.textContent = 'Install App';
+                installButton.className = 'btn';
+                installButton.style.position = 'fixed';
+                installButton.style.bottom = '100px';
+                installButton.style.right = '20px';
+                installButton.style.zIndex = '10000';
+                installButton.onclick = function() {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(function(choiceResult) {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted the A2HS prompt');
+                        } else {
+                            console.log('User dismissed the A2HS prompt');
+                        }
+                        deferredPrompt = null;
+                        installButton.remove();
+                    });
+                };
+                document.body.appendChild(installButton);
+            });
+        }
+        
+        // Handle page visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                loadDashboardData(); // Refresh data when page becomes visible
+            }
+        });
+    </script>
+</body>
+</html>

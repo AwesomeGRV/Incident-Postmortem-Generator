@@ -1,0 +1,72 @@
+{
+  "name": "Enterprise Incident Postmortem Generator",
+  "short_name": "Incident Postmortem",
+  "description": "Enterprise-grade incident postmortem management system with AI-powered insights",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"],
+  "lang": "en",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/static/screenshots/desktop-dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard view on desktop"
+    },
+    {
+      "src": "/static/screenshots/mobile-dashboard.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard view on mobile"
+    }
+  ]
+}

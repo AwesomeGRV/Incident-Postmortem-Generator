@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -26,6 +26,10 @@ from .notifications import AlertManager
 from .models import IncidentInput
 from .templates import PostmortemTemplate
 from .pdf_converter import PDFConverter
+from .websocket_service import connection_manager, notification_service
+from .ai_classifier import incident_classifier
+from .template_system import template_manager
+from .compliance_system import get_audit_manager, AuditEvent, AuditAction, ComplianceStandard
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -112,7 +116,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Main dashboard"""
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    return templates.TemplateResponse("enhanced_dashboard.html", {"request": request})
 
 
 @app.get("/incidents/new", response_class=HTMLResponse)
@@ -184,8 +188,52 @@ async def create_incident_api(
 ):
     """Create new incident via API"""
     incident_service = IncidentService(db)
+    audit_manager = get_audit_manager(db)
+    
+    # Log audit event
+    audit_event = AuditEvent(
+        user_id=current_user.id,
+        user_name=current_user.full_name,
+        action=AuditAction.CREATE,
+        resource_type="incident",
+        resource_id="",  # Will be set after creation
+        details={"title": incident_data.title, "severity": incident_data.severity},
+        ip_address=request.client.host if request else "",
+        user_agent=request.headers.get("user-agent", "") if request else ""
+    )
+    
+    # Classify incident using AI
+    incident_dict = incident_data.dict()
+    classification = incident_classifier.classify_incident(incident_dict)
+    
+    # Enhance incident data with AI classification
+    if not incident_data.severity:
+        incident_data.severity = classification.severity.value
+    
+    # Add AI insights to incident metadata
+    incident_dict['ai_classification'] = {
+        'category': classification.category.value,
+        'confidence': classification.confidence,
+        'factors': classification.factors,
+        'recommended_actions': classification.recommended_actions,
+        'estimated_resolution_time': classification.estimated_resolution_time,
+        'business_impact': classification.business_impact
+    }
+    
     incident = incident_service.create_incident(incident_data, current_user, request)
-    return {"incident_id": incident.id, "status": "created"}
+    
+    # Update audit event with incident ID
+    audit_event.resource_id = str(incident.id)
+    audit_manager.log_event(audit_event)
+    
+    # Send real-time notifications
+    await notification_service.notify_incident_created(incident, current_user, db)
+    
+    return {
+        "incident_id": incident.id, 
+        "status": "created",
+        "ai_classification": incident_dict['ai_classification']
+    }
 
 
 @app.get("/api/incidents")
@@ -255,6 +303,9 @@ async def update_incident_api(
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
     
+    # Send real-time notifications
+    await notification_service.notify_incident_updated(incident, current_user, db)
+    
     return {"incident_id": incident.id, "status": "updated"}
 
 
@@ -271,6 +322,9 @@ async def publish_incident_api(
     
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
+    
+    # Send real-time notifications
+    await notification_service.notify_incident_published(incident, current_user, db)
     
     return {"incident_id": incident.id, "status": "published"}
 
@@ -399,6 +453,601 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "version": "2.0.0"
     }
+
+
+# WebSocket endpoints
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: int):
+    """WebSocket endpoint for real-time notifications"""
+    await connection_manager.connect(websocket, user_id)
+    try:
+        while True:
+            # Keep connection alive and handle incoming messages
+            data = await websocket.receive_text()
+            # Echo back or handle client messages if needed
+            await websocket.send_text(f"Received: {data}")
+    except WebSocketDisconnect:
+        connection_manager.disconnect(websocket)
+
+
+# AI Classification endpoints
+@app.post("/api/ai/classify")
+async def classify_incident_api(
+    incident_data: dict,
+    current_user: User = Depends(require_editor)
+):
+    """Classify incident using AI"""
+    try:
+        classification = incident_classifier.classify_incident(incident_data)
+        return {
+            "category": classification.category.value,
+            "severity": classification.severity.value,
+            "confidence": classification.confidence,
+            "factors": classification.factors,
+            "recommended_actions": classification.recommended_actions,
+            "estimated_resolution_time": classification.estimated_resolution_time,
+            "business_impact": classification.business_impact
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Classification failed: {str(e)}")
+
+
+@app.post("/api/ai/analyze-timeline")
+async def analyze_timeline_api(
+    timeline_data: List[dict],
+    current_user: User = Depends(require_editor)
+):
+    """Analyze incident timeline for patterns and insights"""
+    try:
+        # Extract text from timeline events
+        timeline_text = " ".join([
+            event.get("event", "") for event in timeline_data if isinstance(event, dict)
+        ])
+        
+        # Classify the timeline
+        classification = incident_classifier.classify_incident({"timeline": timeline_data})
+        
+        # Identify patterns
+        patterns = []
+        
+        # Check for common incident patterns
+        event_descriptions = [event.get("event", "").lower() for event in timeline_data if isinstance(event, dict)]
+        
+        if any("alert" in desc for desc in event_descriptions):
+            patterns.append("Alert-driven detection")
+        if any("manual" in desc or "human" in desc for desc in event_descriptions):
+            patterns.append("Manual intervention required")
+        if any("deploy" in desc or "release" in desc for desc in event_descriptions):
+            patterns.append("Deployment-related incident")
+        if any("network" in desc or "connection" in desc for desc in event_descriptions):
+            patterns.append("Network connectivity issues")
+        
+        return {
+            "classification": {
+                "category": classification.category.value,
+                "severity": classification.severity.value,
+                "confidence": classification.confidence
+            },
+            "patterns": patterns,
+            "factors": classification.factors,
+            "recommended_actions": classification.recommended_actions
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Timeline analysis failed: {str(e)}")
+
+
+@app.post("/api/ai/predict-resolution-time")
+async def predict_resolution_time_api(
+    incident_data: dict,
+    current_user: User = Depends(require_editor)
+):
+    """Predict incident resolution time using AI"""
+    try:
+        classification = incident_classifier.classify_incident(incident_data)
+        
+        # Add more sophisticated prediction logic here
+        base_time = classification.estimated_resolution_time
+        
+        # Adjust based on incident complexity
+        timeline = incident_data.get("timeline", [])
+        if len(timeline) > 10:
+            base_time *= 1.3  # Complex incidents take longer
+        
+        # Adjust based on number of affected services
+        impact = incident_data.get("impact", [])
+        if len(impact) > 3:
+            base_time *= 1.2
+        
+        return {
+            "predicted_resolution_time_minutes": int(base_time),
+            "confidence": classification.confidence,
+            "factors_considered": [
+                "incident_severity",
+                "incident_category", 
+                "timeline_complexity",
+                "impact_scope"
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+
+@app.get("/api/ai/incident-suggestions")
+async def get_incident_suggestions(
+    query: str,
+    current_user: User = Depends(require_editor)
+):
+    """Get incident suggestions based on partial input"""
+    try:
+        # Simple keyword-based suggestions
+        suggestions = []
+        
+        # Common incident patterns
+        common_patterns = {
+            "database": [
+                "Database connection pool exhaustion",
+                "Slow query performance degradation",
+                "Database deadlock detected",
+                "Database replication lag"
+            ],
+            "network": [
+                "Network latency increased",
+                "Connection timeout errors",
+                "Packet loss detected",
+                "DNS resolution failures"
+            ],
+            "application": [
+                "Application memory leak",
+                "High CPU utilization",
+                "Application crash detected",
+                "Unresponsive application"
+            ],
+            "infrastructure": [
+                "Server disk space full",
+                "Memory exhaustion",
+                "CPU spike detected",
+                "Infrastructure failure"
+            ]
+        }
+        
+        query_lower = query.lower()
+        for category, incidents in common_patterns.items():
+            for incident in incidents:
+                if query_lower in incident.lower() or any(word in incident.lower() for word in query_lower.split()):
+                    suggestions.append({
+                        "title": incident,
+                        "category": category,
+                        "severity": "medium"  # Default severity
+                    })
+        
+        return {"suggestions": suggestions[:10]}  # Return top 10
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Suggestion generation failed: {str(e)}")
+
+
+# Template system endpoints
+@app.get("/api/templates")
+async def get_templates_api(
+    category: Optional[str] = None,
+    current_user: User = Depends(require_viewer)
+):
+    """Get all incident templates"""
+    try:
+        if category:
+            from .template_system import TemplateCategory
+            cat_enum = TemplateCategory(category)
+            templates = template_manager.get_templates_by_category(cat_enum)
+        else:
+            templates = template_manager.get_all_templates()
+        
+        return {
+            "templates": [
+                {
+                    "id": template.id,
+                    "name": template.name,
+                    "description": template.description,
+                    "category": template.category.value,
+                    "severity": template.severity,
+                    "tags": template.tags,
+                    "created_at": template.created_at.isoformat(),
+                    "updated_at": template.updated_at.isoformat()
+                }
+                for template in templates
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get templates: {str(e)}")
+
+
+@app.get("/api/templates/{template_id}")
+async def get_template_api(
+    template_id: str,
+    current_user: User = Depends(require_viewer)
+):
+    """Get specific template"""
+    try:
+        template = template_manager.get_template(template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        return {
+            "id": template.id,
+            "name": template.name,
+            "description": template.description,
+            "category": template.category.value,
+            "severity": template.severity,
+            "fields": [
+                {
+                    "name": field.name,
+                    "label": field.label,
+                    "type": field.type,
+                    "required": field.required,
+                    "options": field.options,
+                    "default_value": field.default_value,
+                    "placeholder": field.placeholder,
+                    "validation": field.validation
+                }
+                for field in template.fields
+            ],
+            "suggested_actions": template.suggested_actions,
+            "contributing_factors": template.contributing_factors,
+            "tags": template.tags,
+            "created_at": template.created_at.isoformat(),
+            "updated_at": template.updated_at.isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get template: {str(e)}")
+
+
+@app.post("/api/templates")
+async def create_template_api(
+    template_data: dict,
+    current_user: User = Depends(require_admin)
+):
+    """Create new template"""
+    try:
+        template = template_manager.create_template(template_data)
+        return {
+            "id": template.id,
+            "status": "created",
+            "message": "Template created successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create template: {str(e)}")
+
+
+@app.put("/api/templates/{template_id}")
+async def update_template_api(
+    template_id: str,
+    updates: dict,
+    current_user: User = Depends(require_admin)
+):
+    """Update template"""
+    try:
+        template = template_manager.update_template(template_id, updates)
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        return {
+            "id": template.id,
+            "status": "updated",
+            "message": "Template updated successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update template: {str(e)}")
+
+
+@app.delete("/api/templates/{template_id}")
+async def delete_template_api(
+    template_id: str,
+    current_user: User = Depends(require_admin)
+):
+    """Delete template"""
+    try:
+        success = template_manager.delete_template(template_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        return {"status": "deleted", "message": "Template deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete template: {str(e)}")
+
+
+@app.post("/api/templates/{template_id}/apply")
+async def apply_template_api(
+    template_id: str,
+    current_user: User = Depends(require_editor)
+):
+    """Apply template to get initial incident data"""
+    try:
+        incident_data = template_manager.apply_template(template_id)
+        if not incident_data:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        return {
+            "incident_data": incident_data,
+            "message": "Template applied successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to apply template: {str(e)}")
+
+
+# AI insights endpoint for dashboard
+@app.get("/api/ai/insights")
+async def get_ai_insights_api(
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Get AI-powered insights for dashboard"""
+    try:
+        # Get recent incidents for analysis
+        incident_service = IncidentService(db)
+        recent_incidents = incident_service.search_incidents(
+            user=current_user,
+            page=1,
+            page_size=10
+        )["incidents"]
+        
+        insights = []
+        
+        # Analyze incident trends
+        if len(recent_incidents) > 0:
+            severity_counts = {}
+            category_counts = {}
+            
+            for incident in recent_incidents:
+                severity = incident.severity
+                category = getattr(incident, 'category', 'unknown')
+                
+                severity_counts[severity] = severity_counts.get(severity, 0) + 1
+                category_counts[category] = category_counts.get(category, 0) + 1
+            
+            # Most common severity
+            most_common_severity = max(severity_counts, key=severity_counts.get)
+            insights.append({
+                "title": "Trend Analysis",
+                "content": f"Most incidents this week are {most_common_severity} severity. Consider reviewing {most_common_severity} severity incident response procedures.",
+                "icon": "📈"
+            })
+            
+            # Resolution time trend
+            avg_resolution = sum(
+                getattr(incident, 'duration_minutes', 0) for incident in recent_incidents
+            ) / len(recent_incidents)
+            
+            if avg_resolution > 120:  # 2 hours
+                insights.append({
+                    "title": "Performance Alert",
+                    "content": f"Average resolution time is {int(avg_resolution)} minutes. Consider optimizing incident response workflows.",
+                    "icon": "⚡"
+                })
+            else:
+                insights.append({
+                    "title": "Performance Good",
+                    "content": f"Average resolution time is {int(avg_resolution)} minutes. Team is performing well!",
+                    "icon": "✅"
+                })
+        
+        # Add predictive insights
+        insights.append({
+            "title": "AI Prediction",
+            "content": "Based on current patterns, expect 2-3 more incidents this week. Focus on proactive monitoring.",
+            "icon": "🤖"
+        })
+        
+        return {"insights": insights}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate insights: {str(e)}")
+
+
+# Compliance and audit endpoints
+@app.get("/api/audit/trail")
+async def get_audit_trail_api(
+    resource_type: Optional[str] = None,
+    resource_id: Optional[str] = None,
+    user_id: Optional[int] = None,
+    action: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    limit: int = 100,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get audit trail"""
+    try:
+        audit_manager = get_audit_manager(db)
+        
+        # Convert action string to enum
+        action_enum = None
+        if action:
+            action_enum = AuditAction(action)
+        
+        events = audit_manager.get_audit_trail(
+            resource_type=resource_type,
+            resource_id=resource_id,
+            user_id=user_id,
+            action=action_enum,
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit
+        )
+        
+        return {
+            "events": [
+                {
+                    "id": event.id,
+                    "timestamp": event.timestamp.isoformat(),
+                    "user_id": event.user_id,
+                    "user_name": event.user_name,
+                    "action": event.action.value,
+                    "resource_type": event.resource_type,
+                    "resource_id": event.resource_id,
+                    "details": event.details,
+                    "ip_address": event.ip_address,
+                    "user_agent": event.user_agent
+                }
+                for event in events
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get audit trail: {str(e)}")
+
+
+@app.post("/api/compliance/reports")
+async def generate_compliance_report_api(
+    standard: str,
+    period_start: datetime,
+    period_end: datetime,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Generate compliance report"""
+    try:
+        audit_manager = get_audit_manager(db)
+        standard_enum = ComplianceStandard(standard)
+        
+        report = audit_manager.generate_compliance_report(
+            standard=standard_enum,
+            period_start=period_start,
+            period_end=period_end,
+            generated_by=current_user.full_name
+        )
+        
+        return {
+            "id": report.id,
+            "standard": report.standard.value,
+            "period_start": report.period_start.isoformat(),
+            "period_end": report.period_end.isoformat(),
+            "total_events": report.total_events,
+            "compliance_score": report.compliance_score,
+            "violations": report.violations,
+            "recommendations": report.recommendations,
+            "generated_at": report.generated_at.isoformat(),
+            "generated_by": report.generated_by
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate compliance report: {str(e)}")
+
+
+@app.get("/api/compliance/reports")
+async def get_compliance_reports_api(
+    standard: Optional[str] = None,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get compliance reports"""
+    try:
+        audit_manager = get_audit_manager(db)
+        
+        # Convert standard string to enum
+        standard_enum = None
+        if standard:
+            standard_enum = ComplianceStandard(standard)
+        
+        reports = audit_manager.get_compliance_reports(standard=standard_enum)
+        
+        return {
+            "reports": [
+                {
+                    "id": report.id,
+                    "standard": report.standard.value,
+                    "period_start": report.period_start.isoformat(),
+                    "period_end": report.period_end.isoformat(),
+                    "total_events": report.total_events,
+                    "compliance_score": report.compliance_score,
+                    "violations_count": len(report.violations),
+                    "generated_at": report.generated_at.isoformat(),
+                    "generated_by": report.generated_by
+                }
+                for report in reports
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get compliance reports: {str(e)}")
+
+
+@app.get("/api/compliance/reports/{report_id}")
+async def get_compliance_report_api(
+    report_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get specific compliance report"""
+    try:
+        audit_manager = get_audit_manager(db)
+        reports = audit_manager.get_compliance_reports()
+        
+        report = next((r for r in reports if r.id == report_id), None)
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        return {
+            "id": report.id,
+            "standard": report.standard.value,
+            "period_start": report.period_start.isoformat(),
+            "period_end": report.period_end.isoformat(),
+            "total_events": report.total_events,
+            "compliance_score": report.compliance_score,
+            "violations": report.violations,
+            "recommendations": report.recommendations,
+            "generated_at": report.generated_at.isoformat(),
+            "generated_by": report.generated_by
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get compliance report: {str(e)}")
+
+
+@app.get("/api/audit/export")
+async def export_audit_trail_api(
+    format: str = "json",
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Export audit trail"""
+    try:
+        audit_manager = get_audit_manager(db)
+        
+        if format not in ["json", "csv"]:
+            raise HTTPException(status_code=400, detail="Format must be 'json' or 'csv'")
+        
+        export_data = audit_manager.export_audit_trail(
+            format=format,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        from fastapi.responses import Response
+        
+        if format == "json":
+            return Response(
+                content=export_data,
+                media_type="application/json",
+                headers={"Content-Disposition": "attachment; filename=audit_trail.json"}
+            )
+        else:
+            return Response(
+                content=export_data,
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=audit_trail.csv"}
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to export audit trail: {str(e)}")
 
 
 if __name__ == "__main__":

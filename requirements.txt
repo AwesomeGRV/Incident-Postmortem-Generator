@@ -24,3 +24,7 @@ email-validator
 python-magic
 aiofiles
 websockets
+nltk
+scikit-learn
+pandas
+numpy
