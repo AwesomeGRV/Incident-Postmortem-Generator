@@ -8,7 +8,8 @@ from typing import Dict, List, Set
 from datetime import datetime
 from fastapi import WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
-from .models import User, Incident
+from .models import User
+from .enterprise_models import Incident
 from .notifications import AlertManager
 
 

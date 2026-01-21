@@ -2,8 +2,8 @@ import smtplib
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from sqlalchemy.orm import Session
 
 from slack_sdk import WebClient
@@ -76,12 +76,12 @@ class NotificationService:
         if not self.smtp_server:
             raise Exception("SMTP server not configured")
         
-        msg = MimeMultipart()
+        msg = MIMEMultipart()
         msg['From'] = Config.SMTP_FROM_EMAIL
         msg['To'] = notification.recipient
         msg['Subject'] = notification.subject
         
-        msg.attach(MimeText(notification.message, 'plain'))
+        msg.attach(MIMEText(notification.message, 'plain'))
         
         self.smtp_server.send_message(msg)
     

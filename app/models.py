@@ -4,6 +4,23 @@ from datetime import datetime
 from enum import Enum
 
 
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    EDITOR = "editor"
+    VIEWER = "viewer"
+
+
+class User(BaseModel):
+    id: int
+    username: str
+    email: str
+    full_name: str
+    role: UserRole
+    is_active: bool = True
+    created_at: datetime
+    last_login: Optional[datetime] = None
+
+
 class SeverityLevel(str, Enum):
     LOW = "low"
     MEDIUM = "medium"

@@ -9,7 +9,8 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
 from sqlalchemy.orm import Session
-from .models import User, Incident
+from .models import User
+from .enterprise_models import Incident
 from .audit import AuditLog
 
 
