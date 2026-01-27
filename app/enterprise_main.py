@@ -7,7 +7,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import json
 import yaml
 import os
@@ -30,6 +30,10 @@ from .websocket_service import connection_manager, notification_service
 from .ai_classifier import incident_classifier
 from .template_system import template_manager
 from .compliance_system import get_audit_manager, AuditEvent, AuditAction, ComplianceStandard
+from .advanced_predictor import get_advanced_predictor, PredictionType
+from .collaborative_editor import get_collaborative_editor
+from .correlation_engine import get_correlation_engine
+from .knowledge_base import get_knowledge_manager, KnowledgeType
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -113,10 +117,16 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 
 
 # Web interface endpoints
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Login page"""
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    """Main dashboard"""
-    return templates.TemplateResponse("enhanced_dashboard.html", {"request": request})
+async def dashboard(request: Request):
+    """Enhanced dashboard with real-time updates and AI insights"""
+    return templates.TemplateResponse("advanced_dashboard.html", {"request": request})
 
 
 @app.get("/incidents/new", response_class=HTMLResponse)
@@ -1048,6 +1058,390 @@ async def export_audit_trail_api(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to export audit trail: {str(e)}")
+
+
+# Advanced AI Prediction Endpoints
+@app.post("/api/ai/predict-incident-likelihood")
+async def predict_incident_likelihood_api(
+    system_metrics: Dict[str, Any],
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Predict incident likelihood based on system metrics"""
+    try:
+        predictor = get_advanced_predictor(db)
+        prediction = predictor.predict_incident_likelihood(system_metrics)
+        
+        return {
+            "prediction_type": prediction.prediction_type.value,
+            "confidence": prediction.confidence,
+            "result": prediction.result,
+            "factors": prediction.factors,
+            "recommendations": prediction.recommendations,
+            "timestamp": prediction.timestamp.isoformat(),
+            "model_version": prediction.model_version
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+
+@app.post("/api/ai/predict-severity")
+async def predict_severity_api(
+    incident_data: Dict[str, Any],
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Predict incident severity"""
+    try:
+        predictor = get_advanced_predictor(db)
+        prediction = predictor.predict_severity(incident_data)
+        
+        return {
+            "prediction_type": prediction.prediction_type.value,
+            "confidence": prediction.confidence,
+            "result": prediction.result,
+            "factors": prediction.factors,
+            "recommendations": prediction.recommendations,
+            "timestamp": prediction.timestamp.isoformat(),
+            "model_version": prediction.model_version
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Severity prediction failed: {str(e)}")
+
+
+@app.post("/api/ai/detect-anomalies")
+async def detect_anomalies_api(
+    system_metrics: Dict[str, Any],
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Detect anomalies in system metrics"""
+    try:
+        predictor = get_advanced_predictor(db)
+        prediction = predictor.detect_anomalies(system_metrics)
+        
+        return {
+            "prediction_type": prediction.prediction_type.value,
+            "confidence": prediction.confidence,
+            "result": prediction.result,
+            "factors": prediction.factors,
+            "recommendations": prediction.recommendations,
+            "timestamp": prediction.timestamp.isoformat(),
+            "model_version": prediction.model_version
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Anomaly detection failed: {str(e)}")
+
+
+@app.get("/api/ai/incident-patterns")
+async def get_incident_patterns_api(
+    days_back: int = 30,
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Get incident patterns"""
+    try:
+        predictor = get_advanced_predictor(db)
+        patterns = predictor.find_incident_patterns(days_back)
+        
+        return {
+            "patterns": [
+                {
+                    "pattern_id": pattern.pattern_id,
+                    "frequency": pattern.frequency,
+                    "time_pattern": pattern.time_pattern,
+                    "affected_systems": pattern.affected_systems,
+                    "severity_trend": pattern.severity_trend,
+                    "related_incidents": pattern.related_incidents,
+                    "prevention_score": pattern.prevention_score
+                }
+                for pattern in patterns
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pattern analysis failed: {str(e)}")
+
+
+@app.post("/api/ai/train-models")
+async def train_ai_models_api(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Train AI prediction models"""
+    try:
+        predictor = get_advanced_predictor(db)
+        result = predictor.train_models()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Model training failed: {str(e)}")
+
+
+# Collaborative Editing Endpoints
+@app.websocket("/ws/collaborative/{incident_id}")
+async def collaborative_editing_websocket(
+    websocket: WebSocket,
+    incident_id: int,
+    token: str = None
+):
+    """WebSocket endpoint for collaborative incident editing"""
+    try:
+        # Authenticate user
+        if not token:
+            await websocket.close(code=4001)
+            return
+        
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username = payload.get("sub")
+            if username is None:
+                await websocket.close(code=4001)
+                return
+        except JWTError:
+            await websocket.close(code=4001)
+            return
+        
+        # Get user
+        db = next(get_db())
+        user = db.query(User).filter(User.username == username).first()
+        if not user:
+            await websocket.close(code=4001)
+            return
+        
+        # Connect to collaborative editor
+        editor = get_collaborative_editor()
+        message = await editor.connect_user(websocket, incident_id, user)
+        
+        # Handle messages
+        while True:
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            
+            if message_data.get('type') == 'edit_operation':
+                await editor.handle_edit_operation(websocket, message_data)
+            elif message_data.get('type') == 'cursor_update':
+                await editor.handle_cursor_update(websocket, message_data)
+            
+    except WebSocketDisconnect:
+        await editor.disconnect_user(websocket)
+    except Exception as e:
+        print(f"Collaborative editing error: {e}")
+        await websocket.close(code=4000)
+
+
+@app.get("/api/collaborative/{incident_id}/active-users")
+async def get_active_users_api(
+    incident_id: int,
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Get active users for collaborative editing"""
+    try:
+        editor = get_collaborative_editor()
+        active_users = editor.get_active_users(incident_id)
+        
+        return {"active_users": active_users}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get active users: {str(e)}")
+
+
+@app.get("/api/collaborative/{incident_id}/edit-history")
+async def get_edit_history_api(
+    incident_id: int,
+    limit: int = 50,
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Get edit history for incident"""
+    try:
+        editor = get_collaborative_editor()
+        edit_history = editor.get_edit_history(incident_id, limit)
+        
+        return {"edit_history": edit_history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get edit history: {str(e)}")
+
+
+# Incident Correlation Endpoints
+@app.post("/api/correlation/analyze")
+async def analyze_incident_correlations_api(
+    days_back: int = 30,
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Analyze incident correlations"""
+    try:
+        correlation_engine = get_correlation_engine(db)
+        analysis = correlation_engine.analyze_incidents(days_back)
+        
+        return analysis
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Correlation analysis failed: {str(e)}")
+
+
+@app.get("/api/correlation/incident/{incident_id}")
+async def get_incident_correlations_api(
+    incident_id: int,
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Get correlations for specific incident"""
+    try:
+        correlation_engine = get_correlation_engine(db)
+        correlations = correlation_engine.get_incident_correlations(incident_id)
+        
+        return {"correlations": correlations}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get correlations: {str(e)}")
+
+
+@app.get("/api/correlation/cluster/{incident_id}")
+async def get_incident_cluster_api(
+    incident_id: int,
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Get cluster information for incident"""
+    try:
+        correlation_engine = get_correlation_engine(db)
+        cluster = correlation_engine.get_incident_cluster(incident_id)
+        
+        if cluster:
+            return {"cluster": cluster}
+        else:
+            return {"cluster": None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get cluster: {str(e)}")
+
+
+# Knowledge Base Endpoints
+@app.post("/api/knowledge/search")
+async def search_knowledge_api(
+    query: str,
+    knowledge_type: Optional[str] = None,
+    limit: int = 10,
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Search knowledge base"""
+    try:
+        knowledge_manager = get_knowledge_manager(db)
+        
+        k_type = KnowledgeType(knowledge_type) if knowledge_type else None
+        results = knowledge_manager.search_knowledge(query, k_type, limit)
+        
+        return {"results": results, "total_found": len(results)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Knowledge search failed: {str(e)}")
+
+
+@app.get("/api/knowledge/incident/{incident_id}/relevant")
+async def get_relevant_knowledge_api(
+    incident_id: int,
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Get relevant knowledge for incident"""
+    try:
+        knowledge_manager = get_knowledge_manager(db)
+        incident = db.query(Incident).filter(Incident.id == incident_id).first()
+        
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+        
+        relevant_knowledge = knowledge_manager.get_relevant_knowledge_for_incident(incident)
+        
+        return {"relevant_knowledge": relevant_knowledge}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get relevant knowledge: {str(e)}")
+
+
+@app.post("/api/knowledge/entry/{entry_id}/feedback")
+async def update_knowledge_feedback_api(
+    entry_id: str,
+    feedback_score: float,
+    current_user: User = Depends(require_editor),
+    db: Session = Depends(get_db)
+):
+    """Update knowledge entry usefulness based on feedback"""
+    try:
+        if not 0.0 <= feedback_score <= 1.0:
+            raise HTTPException(status_code=400, detail="Feedback score must be between 0.0 and 1.0")
+        
+        knowledge_manager = get_knowledge_manager(db)
+        knowledge_manager.update_usefulness_score(entry_id, feedback_score)
+        
+        return {"message": "Feedback recorded successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to record feedback: {str(e)}")
+
+
+@app.post("/api/knowledge/learn-patterns")
+async def learn_patterns_api(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Learn patterns from historical data"""
+    try:
+        knowledge_manager = get_knowledge_manager(db)
+        result = knowledge_manager.learn_from_patterns()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pattern learning failed: {str(e)}")
+
+
+@app.get("/api/knowledge/statistics")
+async def get_knowledge_statistics_api(
+    current_user: User = Depends(require_viewer),
+    db: Session = Depends(get_db)
+):
+    """Get knowledge base statistics"""
+    try:
+        knowledge_manager = get_knowledge_manager(db)
+        stats = knowledge_manager.get_knowledge_statistics()
+        
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+
+
+@app.post("/api/knowledge/extract/{incident_id}")
+async def extract_knowledge_from_incident_api(
+    incident_id: int,
+    current_user: User = Depends(require_editor),
+    db: Session = Depends(get_db)
+):
+    """Extract knowledge from resolved incident"""
+    try:
+        knowledge_manager = get_knowledge_manager(db)
+        incident = db.query(Incident).filter(Incident.id == incident_id).first()
+        
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+        
+        entries = knowledge_manager.extract_knowledge_from_incident(incident)
+        
+        return {
+            "message": f"Extracted {len(entries)} knowledge entries",
+            "entries": [
+                {
+                    "entry_id": entry.entry_id,
+                    "title": entry.title,
+                    "knowledge_type": entry.knowledge_type.value,
+                    "confidence_score": entry.confidence_score
+                }
+                for entry in entries
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Knowledge extraction failed: {str(e)}")
 
 
 if __name__ == "__main__":

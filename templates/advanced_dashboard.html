@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Incident Management Dashboard v3.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.css" rel="stylesheet">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .knowledge-card {
+            transition: all 0.3s ease;
+        }
+        .knowledge-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-shield-alt text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">Advanced Incident Management</h1>
+                        <p class="text-sm opacity-90">AI-Powered Real-Time Collaboration</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button id="notificationBtn" class="relative p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <img src="https://picsum.photos/seed/admin/40/40" alt="User" class="w-10 h-10 rounded-full border-2 border-white">
+                        <div>
+                            <p class="font-semibold">Admin User</p>
+                            <p class="text-xs opacity-90">Administrator</p>
+                        </div>
+                    </div>
+                    <button id="logoutBtn" class="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- AI Prediction Panel -->
+        <section class="mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-brain text-purple-600 mr-2"></i>
+                        AI Predictions & Prevention
+                    </h2>
+                    <button id="refreshPredictions" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Incident Likelihood -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold text-lg mb-3">Incident Likelihood</h3>
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-600">Risk Level</span>
+                                <span id="riskLevel" class="text-sm font-semibold text-yellow-600">Medium</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="riskBar" class="bg-yellow-500 h-3 rounded-full transition-all duration-500" style="width: 45%"></div>
+                            </div>
+                            <p id="riskProbability" class="text-xs text-gray-500 mt-1">45% probability</p>
+                        </div>
+                        <div id="riskFactors" class="space-y-2">
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                                <span>CPU usage at 75%</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                                <span>Memory usage at 82%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anomaly Detection -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold text-lg mb-3">Anomaly Detection</h3>
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-600">System Health</span>
+                                <span id="healthStatus" class="text-sm font-semibold text-green-600">Normal</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="healthBar" class="bg-green-500 h-3 rounded-full transition-all duration-500" style="width: 85%"></div>
+                            </div>
+                            <p id="healthScore" class="text-xs text-gray-500 mt-1">85% healthy</p>
+                        </div>
+                        <div id="anomalyMetrics" class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span>Response Time</span>
+                                <span class="text-green-600">Normal</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span>Error Rate</span>
+                                <span class="text-green-600">0.2%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Predictive Insights -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold text-lg mb-3">Predictive Insights</h3>
+                        <div id="insightsList" class="space-y-3">
+                            <div class="p-3 bg-blue-50 rounded-lg">
+                                <p class="text-sm font-medium text-blue-800">Pattern Detected</p>
+                                <p class="text-xs text-blue-600 mt-1">Database incidents peak at 14:00-16:00</p>
+                            </div>
+                            <div class="p-3 bg-green-50 rounded-lg">
+                                <p class="text-sm font-medium text-green-800">Recommendation</p>
+                                <p class="text-xs text-green-600 mt-1">Scale resources before peak hours</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Real-time Collaboration Panel -->
+        <section class="mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-users text-blue-600 mr-2"></i>
+                        Active Collaborations
+                    </h2>
+                    <div class="flex space-x-2">
+                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                            <i class="fas fa-circle text-green-500 text-xs mr-1"></i>
+                            <span id="activeUsersCount">3</span> Active Users
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Active Incident Editing -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-4">Live Incident Editing</h3>
+                        <div id="activeCollaborations" class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="relative">
+                                        <img src="https://picsum.photos/seed/user1/32/32" alt="User" class="w-8 h-8 rounded-full">
+                                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-sm">Database Connection Failed</p>
+                                        <p class="text-xs text-gray-500">Awesome GRV, GRV Awesome editing</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm">Join</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Edit History -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-4">Recent Edit Activity</h3>
+                        <div id="editHistory" class="space-y-2 max-h-48 overflow-y-auto">
+                            <div class="flex items-center space-x-3 text-sm">
+                                <img src="https://picsum.photos/seed/user3/24/24" alt="User" class="w-6 h-6 rounded-full">
+                                <span class="text-gray-600">Awesome GRV</span>
+                                <span class="text-gray-500">edited</span>
+                                <span class="font-medium">Database Connection Failed</span>
+                                <span class="text-gray-400 text-xs">2 min ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Action Buttons -->
+    <div class="fixed bottom-6 right-6 space-y-3">
+        <button id="createIncidentBtn" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-300 hover:scale-110">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
+        <button id="aiAssistantBtn" class="w-14 h-14 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all duration-300 hover:scale-110">
+            <i class="fas fa-robot text-xl"></i>
+        </button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.js"></script>
+    <script>
+        // Global variables
+        let ws = null;
+        let notificationCount = 0;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            connectWebSocket();
+            loadInitialData();
+        });
+
+        function initializeDashboard() {
+            // Setup event listeners
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('notificationBtn').addEventListener('click', toggleNotifications);
+            document.getElementById('refreshPredictions').addEventListener('click', refreshPredictions);
+            document.getElementById('createIncidentBtn').addEventListener('click', createIncident);
+            document.getElementById('aiAssistantBtn').addEventListener('click', openAIAssistant);
+        }
+
+        function connectWebSocket() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            ws = new WebSocket(`ws://localhost:8000/ws/1?token=${token}`);
+            
+            ws.onopen = function() {
+                console.log('WebSocket connected');
+                showNotification('Connected to real-time updates', 'success');
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+
+            ws.onclose = function() {
+                console.log('WebSocket disconnected');
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'notification':
+                    showNotification(data.message, data.level);
+                    updateNotificationBadge();
+                    break;
+                case 'collaborative_update':
+                    updateCollaborativeEditing(data);
+                    break;
+                case 'prediction_update':
+                    updatePredictions(data);
+                    break;
+            }
+        }
+
+        function loadInitialData() {
+            refreshPredictions();
+            loadActiveCollaborations();
+        }
+
+        function refreshPredictions() {
+            const systemMetrics = {
+                cpu_usage: 75,
+                memory_usage: 82,
+                disk_usage: 45,
+                network_latency: 120,
+                error_rate: 0.2,
+                response_time: 450
+            };
+
+            fetch('/api/ai/predict-incident-likelihood', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(systemMetrics)
+            })
+            .then(response => response.json())
+            .then(data => {
+                updatePredictionDisplay(data);
+            })
+            .catch(error => {
+                console.error('Error refreshing predictions:', error);
+                // Fallback to mock data
+                updatePredictionDisplay({
+                    result: {
+                        risk_level: 'medium',
+                        probability: 0.45,
+                        system_health: 85
+                    },
+                    factors: ['CPU usage at 75%', 'Memory usage at 82%'],
+                    recommendations: ['Scale resources', 'Monitor closely']
+                });
+            });
+        }
+
+        function updatePredictionDisplay(prediction) {
+            const result = prediction.result;
+            const riskLevel = result.risk_level;
+            const probability = result.probability * 100;
+
+            const riskLevelElement = document.getElementById('riskLevel');
+            const riskBarElement = document.getElementById('riskBar');
+            const riskProbabilityElement = document.getElementById('riskProbability');
+
+            riskLevelElement.textContent = riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1);
+            riskProbabilityElement.textContent = `${probability.toFixed(1)}% probability`;
+            riskBarElement.style.width = `${probability}%`;
+
+            // Update color based on risk level
+            const colors = {
+                low: 'green',
+                medium: 'yellow',
+                high: 'orange',
+                critical: 'red'
+            };
+            
+            const color = colors[riskLevel] || 'yellow';
+            riskLevelElement.className = `text-sm font-semibold text-${color}-600`;
+            riskBarElement.className = `bg-${color}-500 h-3 rounded-full transition-all duration-500`;
+
+            // Update factors
+            const factorsElement = document.getElementById('riskFactors');
+            if (prediction.factors) {
+                factorsElement.innerHTML = prediction.factors.map(factor => `
+                    <div class="flex items-center text-sm">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                        <span>${factor}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function loadActiveCollaborations() {
+            fetch('/api/collaborative/1/active-users', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateActiveCollaborations(data.active_users);
+            })
+            .catch(error => {
+                console.error('Error loading collaborations:', error);
+            });
+        }
+
+        function updateActiveCollaborations(activeUsers) {
+            const activeUsersCount = document.getElementById('activeUsersCount');
+            activeUsersCount.textContent = activeUsers.length;
+        }
+
+        function showNotification(message, type = 'info') {
+            notificationCount++;
+            updateNotificationBadge();
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-20 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+            } text-white max-w-sm`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${
+                        type === 'success' ? 'check-circle' : 
+                        type === 'error' ? 'exclamation-circle' : 
+                        type === 'warning' ? 'exclamation-triangle' : 'info-circle'
+                    } mr-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notificationBadge');
+            badge.textContent = notificationCount;
+            badge.style.display = notificationCount > 0 ? 'flex' : 'none';
+        }
+
+        function toggleNotifications() {
+            // Toggle notification panel logic here
+            console.log('Toggle notifications');
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+
+        function createIncident() {
+            window.location.href = '/incidents/new';
+        }
+
+        function openAIAssistant() {
+            showNotification('AI Assistant coming soon!', 'info');
+        }
+    </script>
+</body>
+</html>

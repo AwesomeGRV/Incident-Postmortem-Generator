@@ -1,22 +1,23 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 import secrets
+import hashlib
 
 from .database import get_db
-from .models import User, UserRole
+from .enterprise_models import User
+from .models import UserCreate, UserLogin, UserResponse, Token, SeverityLevel
+from .enterprise_models import UserRole
 
 # Security configuration
 SECRET_KEY = secrets.token_urlsafe(32)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 
@@ -58,12 +59,12 @@ class UserResponse(BaseModel):
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
 
 
 def get_password_hash(password: str) -> str:
     """Generate password hash"""
-    return pwd_context.hash(password)
+    return hashlib.sha256(password.encode()).hexdigest()
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
