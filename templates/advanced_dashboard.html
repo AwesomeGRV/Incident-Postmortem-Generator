@@ -211,6 +211,16 @@
         </section>
     </main>
 
+    <!-- Notification Panel -->
+    <div id="notificationPanel" class="fixed top-20 right-4 w-80 bg-white rounded-lg shadow-xl border hidden z-50">
+        <div class="p-4 border-b">
+            <h3 class="font-semibold">Notifications</h3>
+        </div>
+        <div id="notificationList" class="max-h-96 overflow-y-auto">
+            <!-- Notifications will be added here -->
+        </div>
+    </div>
+
     <!-- Floating Action Buttons -->
     <div class="fixed bottom-6 right-6 space-y-3">
         <button id="createIncidentBtn" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-300 hover:scale-110">
@@ -420,8 +430,58 @@
         }
 
         function toggleNotifications() {
-            // Toggle notification panel logic here
-            console.log('Toggle notifications');
+            const panel = document.getElementById('notificationPanel');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                loadNotifications();
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function loadNotifications() {
+            const notificationList = document.getElementById('notificationList');
+            // Load recent notifications (mock data for demo)
+            const notifications = [
+                {
+                    id: 1,
+                    message: 'System health check completed',
+                    level: 'success',
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    message: 'New incident created: Database Connection Failed',
+                    level: 'warning',
+                    timestamp: new Date().toISOString()
+                },
+                {
+                    id: 3,
+                    message: 'AI prediction: High risk detected',
+                    level: 'error',
+                    timestamp: new Date().toISOString()
+                }
+            ];
+            
+            notificationList.innerHTML = notifications.map(notif => `
+                <div class="p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-2 h-2 rounded-full ${
+                            notification.level === 'success' ? 'bg-green-500' :
+                            notification.level === 'warning' ? 'bg-yellow-500' :
+                            notification.level === 'error' ? 'bg-red-500' : 'bg-blue-500'
+                        }"></div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium ${
+                                notification.level === 'success' ? 'text-green-800' :
+                                notification.level === 'warning' ? 'text-yellow-800' :
+                                notification.level === 'error' ? 'text-red-800' : 'text-blue-800'
+                            }">${notification.message}</p>
+                            <p class="text-xs text-gray-500">${new Date(notification.timestamp).toLocaleTimeString()}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function logout() {
