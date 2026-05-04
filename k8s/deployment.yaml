@@ -1,0 +1,381 @@
+# Modern Kubernetes Deployment for 2025 standards
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-postmortem-app
+  labels:
+    app: incident-postmortem
+    version: v3.0
+    component: backend
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: incident-postmortem
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: incident-postmortem
+        version: v3.0
+        component: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: app
+        image: incident-postmortem:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: incident-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: incident-secrets
+              key: redis-url
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: incident-secrets
+              key: secret-key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: incident-secrets
+              key: openai-api-key
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: incident-secrets
+              key: anthropic-api-key
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: incident-secrets
+              key: google-client-id
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: incident-secrets
+              key: google-client-secret
+        - name: SENTRY_DSN
+          valueFrom:
+            secretKeyRef:
+              name: incident-secrets
+              key: sentry-dsn
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+        - name: outputs
+          mountPath: /app/outputs
+        - name: logs
+          mountPath: /app/logs
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: incident-uploads-pvc
+      - name: outputs
+        persistentVolumeClaim:
+          claimName: incident-outputs-pvc
+      - name: logs
+        persistentVolumeClaim:
+          claimName: incident-logs-pvc
+      nodeSelector:
+        kubernetes.io/os: linux
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - incident-postmortem
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+
+---
+# Service for the application
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-postmortem-service
+  labels:
+    app: incident-postmortem
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: incident-postmortem
+    component: backend
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: incident-postmortem-hpa
+  labels:
+    app: incident-postmortem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: incident-postmortem-app
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: incident-postmortem-ingress
+  labels:
+    app: incident-postmortem
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - incident-postmortem.example.com
+    secretName: incident-postmortem-tls
+  rules:
+  - host: incident-postmortem.example.com
+    http:
+      paths:
+      - path: /api(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: incident-postmortem-service
+            port:
+              number: 80
+      - path: /(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: incident-postmortem-service
+            port:
+              number: 80
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: incident-config
+  labels:
+    app: incident-postmortem
+data:
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+  MAX_WORKERS: "4"
+  CELERY_WORKER_CONCURRENCY: "4"
+  ENABLE_METRICS: "true"
+  ENABLE_TRACING: "true"
+
+---
+# Secret for sensitive data
+apiVersion: v1
+kind: Secret
+metadata:
+  name: incident-secrets
+  labels:
+    app: incident-postmortem
+type: Opaque
+data:
+  # Base64 encoded values
+  database-url: cG9zdGdyZXNxbDovL3VzZXI6cGFzc0BkYjo1NDMyL2luY2lkZW50X2Ri
+  redis-url: cmVkaXM6Ly9yZWRpczpwYXNzd29yZEByZWRpczo2Mzc5LzA=
+  secret-key: eW91ci1zZWNyZXQta2V5LWhlcmU=
+  openai-api-key: b3BlbmFpLWFwaS1rZXk=
+  anthropic-api-key: YW50aHJvcGljLWFwaS1rZXk=
+  google-client-id: Z29vZ2xlLWNsaWVudC1pZA==
+  google-client-secret: Z29vZ2xlLWNsaWVudC1zZWNyZXQ=
+  sentry-dsn: c2VudHJ5LWRzbg==
+
+---
+# Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: incident-postmortem-netpol
+  labels:
+    app: incident-postmortem
+spec:
+  podSelector:
+    matchLabels:
+      app: incident-postmortem
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - podSelector:
+        matchLabels:
+          app: incident-postmortem
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS
+    - protocol: TCP
+      port: 80   # HTTP
+    - protocol: TCP
+      port: 53   # DNS
+    - protocol: UDP
+      port: 53   # DNS
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: incident-postmortem-pdb
+  labels:
+    app: incident-postmortem
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: incident-postmortem
+      component: backend
+
+---
+# Resource Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: incident-postmortem-quota
+  labels:
+    app: incident-postmortem
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    persistentvolumeclaims: "3"
+    pods: "10"
+    services: "5"
+    secrets: "10"
+    configmaps: "10"
